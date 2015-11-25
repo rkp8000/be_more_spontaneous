@@ -26,10 +26,10 @@ class RateBasedModel(object):
     def __init__(self, nodes, weights):
         
         # store all relevant node parameters and connection weight matrix
-        self.taus = [node['tau'] for node in nodes]
-        self.baselines = [node['baseline'] for node in nodes]
-        self.v_ths = [node['threshold'] for node in nodes]
-        self.gs = [node['steepness'] for node in nodes]
+        self.taus = np.array([node['tau'] for node in nodes], dtype=float)
+        self.restings = np.array([node['resting'] for node in nodes], dtype=float)
+        self.v_ths = np.array([node['threshold'] for node in nodes], dtype=float)
+        self.gs = np.array([node['steepness'] for node in nodes], dtype=float)
         
         self.w = weights
         
@@ -43,27 +43,27 @@ class RateBasedModel(object):
         
         self.store_voltages = False
     
-    def step(self, drive=None):
+    def step(self, drive=0):
         """
         Step forward one instant in time, optionally providing a drive to the network.
         
         :param drive: drive to network, given as scalar or 1-D array
         """
-        noise = self.noise_level * np.random.randn(self.vs.shape)
-        dvs = (1/self.taus) * (-self.vs + self.ws.dot(self.rs) + drive + noise)
+        noise = self.noise_level * np.random.randn(*self.vs.shape)
+        dvs = (1/self.taus) * (-self.vs + self.w.dot(self.rs) + noise + self.restings + drive)
         self.vs = self.vs + dvs  # TO DO: replace with augmented assignment if it works
         
         self.record_data()
     
-    def rate_from_voltage(self):
+    def rate_from_voltage(self, vs):
         """
         Calculate firing rate from voltage.
         """
-        return phi(self.gs * (self.vs - self.v_ths))
+        return phi(self.gs * (vs - self.v_ths))
     
     def record_data(self):
         if self.store_voltages:
-            self.vs_history.append(self.voltages)
+            self.vs_history.append(self.vs)
     
     @property
     def vs(self):
@@ -76,4 +76,4 @@ class RateBasedModel(object):
         
     @property
     def rs_history(self):
-        return [self.rate_from_voltages(vs) for vs in self.vs_history]
+        return [self.rate_from_voltage(vs) for vs in self.vs_history]
