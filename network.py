@@ -27,7 +27,7 @@ class RateBasedModel(object):
         
         # store all relevant node parameters and connection weight matrix
         self.taus = np.array([node['tau'] for node in nodes], dtype=float)
-        self.restings = np.array([node['resting'] for node in nodes], dtype=float)
+        self.v_rests = np.array([node['v_rest'] for node in nodes], dtype=float)
         self.v_ths = np.array([node['threshold'] for node in nodes], dtype=float)
         self.gs = np.array([node['steepness'] for node in nodes], dtype=float)
         
@@ -50,7 +50,7 @@ class RateBasedModel(object):
         :param drive: drive to network, given as scalar or 1-D array
         """
         noise = self.noise_level * np.random.randn(*self.vs.shape)
-        dvs = (1/self.taus) * (-self.vs + self.w.dot(self.rs) + noise + self.restings + drive)
+        dvs = (1/self.taus) * (-self.vs + self.w.dot(self.rs) + noise + self.v_rests + drive)
         self.vs = self.vs + dvs  # TO DO: replace with augmented assignment if it works
         
         self.record_data()

@@ -20,20 +20,20 @@ class RateModelNetworkTestCase(unittest.TestCase):
         drives = 10*[np.array([0, 0, 0, 0])] + 10*[2*np.array([3, 4, 6, 10])] + 60*[np.array([0, 0, 0, 0])]
         # define network parameters
         taus = [3, 5, 10, 20]
-        restings = [-20, -10, 0, 10]
+        v_rests = [-20, -10, 0, 10]
         v_ths = [-10, -1, 8, 17]
         gs = [.5, .5, .5, .5]
         
         # dake new network
-        nodes = [{'tau': t, 'resting': resting, 'threshold': th, 'steepness': g}
-                for t, resting, th, g in zip(taus, restings, v_ths, gs)]
+        nodes = [{'tau': t, 'v_rest': v_rest, 'threshold': th, 'steepness': g}
+                for t, v_rest, th, g in zip(taus, v_rests, v_ths, gs)]
         weights = np.zeros((len(taus), len(taus)))
         
         ntwk = RateBasedModel(nodes, weights)
         ntwk.store_voltages = True
         
         # initialize and run network
-        ntwk.vs = np.array([-20, -10, 0, 10])
+        ntwk.vs = np.array(v_rests)
         for drive in drives:
             ntwk.step(drive)
         
@@ -62,13 +62,13 @@ class RateModelNetworkTestCase(unittest.TestCase):
                  60*[np.array([0, 0])] + 20*[-4*np.array([1, 1])] + 60*[np.array([0, 0])]
         # define network parameters
         taus = [10, 10]
-        restings = [0, 0]
+        v_rests = [0, 0]
         v_ths = [4, 4]
         gs = [2.5, 2.5]
         w_selfs = [7.5, 5.5]
         
-        nodes = [{'tau': t, 'resting': resting, 'threshold': th, 'steepness': g}
-                for t, resting, th, g in zip(taus, restings, v_ths, gs)]
+        nodes = [{'tau': t, 'v_rest': v_rest, 'threshold': th, 'steepness': g}
+                for t, v_rest, th, g in zip(taus, v_rests, v_ths, gs)]
         weights = np.diag(w_selfs)
         
         # make network
@@ -76,7 +76,7 @@ class RateModelNetworkTestCase(unittest.TestCase):
         ntwk.store_voltages = True
         
         # initialize and run network
-        ntwk.vs = np.array(restings)
+        ntwk.vs = np.array(v_rests)
         for drive in drives:
             ntwk.step(drive)
             
@@ -105,14 +105,14 @@ class RateModelNetworkTestCase(unittest.TestCase):
                  140*[np.array([0, 0, 0])]
         # define network parameters
         taus = [10, 10, 10]
-        restings = [0, 0, 0]
+        v_rests = [0, 0, 0]
         v_ths = [4, 4, 4]
         gs = [2.5, 2.5, 2.5]
         w_selfs = [5.3, 5.3, 5.3]
         noise_level = np.array([1, 2, 3])
         
-        nodes = [{'tau': t, 'resting': resting, 'threshold': th, 'steepness': g}
-                for t, resting, th, g in zip(taus, restings, v_ths, gs)]
+        nodes = [{'tau': t, 'v_rest': v_rest, 'threshold': th, 'steepness': g}
+                for t, v_rest, th, g in zip(taus, v_rests, v_ths, gs)]
         weights = np.diag(w_selfs)
         
         # make network
@@ -122,7 +122,7 @@ class RateModelNetworkTestCase(unittest.TestCase):
         
         # initialize and run network
         np.random.seed(seed=4)
-        ntwk.vs = np.array(restings)
+        ntwk.vs = np.array(v_rests)
         for drive in drives:
             ntwk.step(drive)
             
@@ -154,13 +154,13 @@ class RateModelNetworkTestCase(unittest.TestCase):
         
         # define network parameters
         taus = [10, 10, 10]
-        restings = [0, 0, 0]
+        v_rests = [0, 0, 0]
         v_ths = [4, 4, 4]
         gs = [2.5, 2.5, 2.5]
         noise_level = 2
         
-        nodes = [{'tau': t, 'resting': resting, 'threshold': th, 'steepness': g}
-                for t, resting, th, g in zip(taus, restings, v_ths, gs)]
+        nodes = [{'tau': t, 'v_rest': v_rest, 'threshold': th, 'steepness': g}
+                for t, v_rest, th, g in zip(taus, v_rests, v_ths, gs)]
         weights = np.array([
                 [0, 0, 0],
                 [0, 0, 0],
@@ -174,7 +174,7 @@ class RateModelNetworkTestCase(unittest.TestCase):
         
         # initialize and run network
         np.random.seed(1)
-        ntwk.vs = np.array(restings)
+        ntwk.vs = np.array(v_rests)
         for drive in drives:
             ntwk.step(drive)
             
@@ -195,3 +195,7 @@ class RateModelNetworkTestCase(unittest.TestCase):
         
         for ax in axs:
             axis_tools.set_fontsize(ax, 20)
+            
+
+if __name__ == '__main__':
+    unittest.main()
