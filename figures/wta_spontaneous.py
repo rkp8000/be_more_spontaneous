@@ -29,6 +29,7 @@ def main(config):
     SWITCH_DRIVE = config['SWITCH_DRIVE']
     
     FONT_SIZE = config['FONT_SIZE']
+    COLOR_CYCLE = config['COLOR_CYCLE']
     
     ## run simulation with single WTA unit
     # setup network parameters; order: (switch, fast, fast_inh)
@@ -55,6 +56,9 @@ def main(config):
         
     # make figure
     fig, axs = plt.subplots(2, 1, figsize=(15, 5), sharex=True, tight_layout=True)
+    for ax in axs:
+        ax.set_color_cycle(COLOR_CYCLE)
+        
     axs[0].plot(ntwk.vs_history, lw=2)
     axs[1].plot(ntwk.rs_history, lw=2)
     
@@ -98,6 +102,9 @@ def main(config):
 
     # make figure
     fig, axs = plt.subplots(2, 1, figsize=(15, 5), sharex=True, tight_layout=True)
+    for ax in axs:
+        ax.set_color_cycle(COLOR_CYCLE)
+        
     axs[0].plot(np.array(ntwk.vs_history)[:, [1, 3, 5]], lw=2)
     axs[1].plot(np.array(ntwk.rs_history)[:, [1, 3, 5]], lw=2)
     
@@ -142,6 +149,9 @@ def main(config):
 
     # make figure
     fig, axs = plt.subplots(2, 1, figsize=(15, 5), sharex=True, tight_layout=True)
+    for ax in axs:
+        ax.set_color_cycle(COLOR_CYCLE)
+        
     axs[0].plot(np.array(ntwk.vs_history)[:, [1, 3, 5]], lw=2)
     axs[1].plot(np.array(ntwk.rs_history)[:, [1, 3, 5]], lw=2)
     
@@ -184,6 +194,9 @@ def main(config):
 
     # make figure
     fig, axs = plt.subplots(2, 1, figsize=(15, 5), sharex=True, tight_layout=True)
+    for ax in axs:
+        ax.set_color_cycle(COLOR_CYCLE)
+        
     axs[0].plot(np.array(ntwk.vs_history)[:, 2:], lw=2)
     axs[1].plot(np.array(ntwk.rs_history)[:, 2:], lw=2)
     
@@ -230,6 +243,9 @@ def main(config):
 
     # make figure
     fig, axs = plt.subplots(2, 1, figsize=(15, 5), sharex=True, tight_layout=True)
+    for ax in axs:
+        ax.set_color_cycle(COLOR_CYCLE)
+        
     axs[0].plot(np.array(ntwk.vs_history)[:, 2:], lw=2)
     axs[1].plot(np.array(ntwk.rs_history)[:, 2:], lw=2)
     
