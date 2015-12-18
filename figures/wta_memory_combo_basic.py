@@ -113,7 +113,7 @@ def main(config):
     axs[1].set_title('Drive')
     axs[1].set_ylabel('Drive')
     axs[2].set_title('Memory units')
-    axs[2].set_ylabel('Firing rate')
+    axs[2].set_ylabel('Voltage')
     axs[3].set_title('Conduit units')
     axs[3].set_ylabel('Firing rate')
     axs[3].twin.set_ylabel('Voltage')
