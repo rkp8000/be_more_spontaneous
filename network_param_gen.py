@@ -3,7 +3,7 @@ from itertools import combinations
 import numpy as np
 
 
-def wta_memory_combo(n_units, tau, tau_m, v_rest, v_rest_c, v_th, steepness,
+def wta_memory_combo(n_units, tau, tau_m, tau_c, v_rest, v_rest_c, v_th, steepness,
                      w_if, w_fs, w_fi, w_ff, w_fc, w_mf, w_mm, w_cf, w_cm):
     """
     Create node list and weight matrix for a winner-take-all network with short-term memory.
@@ -36,8 +36,8 @@ def wta_memory_combo(n_units, tau, tau_m, v_rest, v_rest_c, v_th, steepness,
     # make memory unit triplets
     for pair in pairs:
         nodes.append({'tau': tau_m, 'v_rest': v_rest, 'threshold': v_th, 'steepness': steepness})
-        nodes.append({'tau': tau, 'v_rest': v_rest_c, 'threshold': v_th, 'steepness': steepness})
-        nodes.append({'tau': tau, 'v_rest': v_rest_c, 'threshold': v_th, 'steepness': steepness})
+        nodes.append({'tau': tau_c, 'v_rest': v_rest_c, 'threshold': v_th, 'steepness': steepness})
+        nodes.append({'tau': tau_c, 'v_rest': v_rest_c, 'threshold': v_th, 'steepness': steepness})
     
     # make weight matrix
     weights = np.zeros((len(nodes), len(nodes)), dtype=float)

@@ -11,10 +11,11 @@ class WtaMemoryComboTestCase(unittest.TestCase):
         # node parameters
         tau = 1
         tau_m = 2
-        v_th = 3
-        steepness = 4
-        v_rest = 5
-        v_rest_c = 6
+        tau_c = 3
+        v_th = 4
+        steepness = 5
+        v_rest = 6
+        v_rest_c = 7
         
         # weight matrix parameters
         w_if = 1  # to inhibitory from fast
@@ -37,8 +38,8 @@ class WtaMemoryComboTestCase(unittest.TestCase):
             {'tau': tau, 'v_rest': v_rest, 'threshold': v_th, 'steepness': steepness},    # f
         ] + int(n_units * (n_units - 1) / 2) * [
             {'tau': tau_m, 'v_rest': v_rest, 'threshold': v_th, 'steepness': steepness},  # m
-            {'tau': tau, 'v_rest': v_rest_c, 'threshold': v_th, 'steepness': steepness},  # c
-            {'tau': tau, 'v_rest': v_rest_c, 'threshold': v_th, 'steepness': steepness},  # c
+            {'tau': tau_c, 'v_rest': v_rest_c, 'threshold': v_th, 'steepness': steepness},  # c
+            {'tau': tau_c, 'v_rest': v_rest_c, 'threshold': v_th, 'steepness': steepness},  # c
         ]
         
         # first column is s (switch unit)
@@ -72,7 +73,7 @@ class WtaMemoryComboTestCase(unittest.TestCase):
         
         nodes, weights = network_param_gen.wta_memory_combo(
             n_units=n_units,
-            tau=tau, tau_m=tau_m, v_rest=v_rest, v_rest_c=v_rest_c, v_th=v_th, steepness=steepness,
+            tau=tau, tau_m=tau_m, tau_c=tau_c, v_rest=v_rest, v_rest_c=v_rest_c, v_th=v_th, steepness=steepness,
             w_if=w_if, w_fs=w_fs, w_fi=w_fi, w_ff=w_ff, w_fc=w_fc,
             w_mf=w_mf, w_mm=w_mm, w_cf=w_cf, w_cm=w_cm,
         )
@@ -85,7 +86,7 @@ class WtaMemoryComboTestCase(unittest.TestCase):
         n_units_large = 15
         nodes, weights = network_param_gen.wta_memory_combo(
             n_units=n_units_large,
-            tau=tau, tau_m=tau_m, v_rest=v_rest, v_rest_c=v_rest_c, v_th=v_th, steepness=steepness,
+            tau=tau, tau_m=tau_m, tau_c=tau_c, v_rest=v_rest, v_rest_c=v_rest_c, v_th=v_th, steepness=steepness,
             w_if=w_if, w_fs=w_fs, w_fi=w_fi, w_ff=w_ff, w_fc=w_fc,
             w_mf=w_mf, w_mm=w_mm, w_cf=w_cf, w_cm=w_cm,
         )
