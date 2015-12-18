@@ -90,19 +90,34 @@ def main(config):
         ntwk.step(drive)
     
     # do some things before making figures
+    rs = np.array(ntwk.rs_history)
+    vs = np.array(ntwk.vs_history)
+    
     f_idxs = np.arange(2, 2 + N_UNITS, dtype=int)
     m_idxs = np.arange(2 + N_UNITS, 2 + N_UNITS + 3 * N_UNITS * (N_UNITS - 1) / 2, 3, dtype=int)
     
     fig, axs = plt.subplots(4, 1, figsize=(15, 12), sharex=True, tight_layout=True)
-    for ax in axs:
+    axs[3].twin = axs[3].twinx()
+    for ax in np.concatenate([axs.flatten(), [axs[3].twin]]):
         ax.set_color_cycle(COLOR_CYCLE)
-    rs = np.array(ntwk.rs_history)
-    vs = np.array(ntwk.vs_history)
-    
+        
     axs[0].plot(rs[:, f_idxs], lw=2)
     axs[1].plot(drives[:, np.concatenate([f_idxs, [0]])], lw=2)
     axs[2].plot(vs[:, m_idxs], lw=2)
-    axs[3].plot(vs[:, range(m_idxs[0] + 1, m_idxs[0] + 3)], lw=2, ls='--')
-    axs[3].twin = axs[3].twinx()
-    axs[3].twin.set_color_cycle(COLOR_CYCLE)
-    axs[3].twin.plot(rs[:, range(m_idxs[0] + 1, m_idxs[0] + 3)], lw=2, ls='-')
+    axs[3].plot(rs[:, range(m_idxs[0] + 1, m_idxs[0] + 3)], lw=2, ls='-')
+    
+    axs[3].twin.plot(vs[:, range(m_idxs[0] + 1, m_idxs[0] + 3)], lw=2, ls='--')
+    
+    axs[0].set_title('Fast units')
+    axs[0].set_ylabel('Firing rate')
+    axs[1].set_title('Drive')
+    axs[1].set_ylabel('Drive')
+    axs[2].set_title('Memory units')
+    axs[2].set_ylabel('Firing rate')
+    axs[3].set_title('Conduit units')
+    axs[3].set_ylabel('Firing rate')
+    axs[3].twin.set_ylabel('Voltage')
+    axs[3].set_xlabel('t')
+    
+    for ax in np.concatenate([axs.flatten(), [axs[3].twin]]):
+        axis_tools.set_fontsize(ax, FONT_SIZE)
