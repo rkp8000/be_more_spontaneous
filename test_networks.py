@@ -1,4 +1,5 @@
 from __future__ import division, print_function
+from itertools import product as cproduct
 import matplotlib.pyplot as plt
 import numpy as np
 import sys
@@ -8,7 +9,7 @@ sys.path.append('/Users/rkp/Dropbox/Repositories')
 from figure_magic import axis_tools
 from unittest_jupyter import run
 
-from network import RateBasedModel
+from network import RateBasedModel, DiscreteTimeSquareLattice
 
 
 FONT_SIZE = 20
@@ -197,5 +198,46 @@ class RateModelNetworkTestCase(unittest.TestCase):
             axis_tools.set_fontsize(ax, 20)
             
 
+class DiscreteTimeSquareLatticeTestCase(unittest.TestCase):
+    
+    def test_make_weight_matrix_makes_correct_weight_matrices(self):
+        # we'll try out a 4 x 5 lattice for the nearest neighbor setting
+        # [x x x x x]
+        # [x x x x x]
+        # [x x x x x]
+        # [x x x x x]
+        # to vectorize the lattice we read left to right, top to bottom
+        correct_matrix = np.array([
+          # 00 01 02 03 04   10 11 12 13 14   20 21 22 23 24  30 31 32 33 34
+           [0, 1, 0, 0, 0,   1, 1, 0, 0, 0,   0, 0, 0, 0, 0,  0, 0, 0, 0, 0,],  # 00
+           [1, 0, 1, 0, 0,   1, 1, 1, 0, 0,   0, 0, 0, 0, 0,  0, 0, 0, 0, 0,],  # 01
+           [0, 1, 0, 1, 0,   0, 1, 1, 1, 0,   0, 0, 0, 0, 0,  0, 0, 0, 0, 0,],  # 02
+           [0, 0, 1, 0, 1,   0, 0, 1, 1, 1,   0, 0, 0, 0, 0,  0, 0, 0, 0, 0,],  # 03
+           [0, 0, 0, 1, 0,   0, 0, 0, 1, 1,   0, 0, 0, 0, 0,  0, 0, 0, 0, 0,],  # 04
+                
+           [1, 1, 0, 0, 0,   0, 1, 0, 0, 0,   1, 1, 0, 0, 0,  0, 0, 0, 0, 0,],  # 10
+           [1, 1, 1, 0, 0,   1, 0, 1, 0, 0,   1, 1, 1, 0, 0,  0, 0, 0, 0, 0,],  # 11
+           [0, 1, 1, 1, 0,   0, 1, 0, 1, 0,   0, 1, 1, 1, 0,  0, 0, 0, 0, 0,],  # 12
+           [0, 0, 1, 1, 1,   0, 0, 1, 0, 1,   0, 0, 1, 1, 1,  0, 0, 0, 0, 0,],  # 13
+           [0, 0, 0, 1, 1,   0, 0, 0, 1, 0,   0, 0, 0, 1, 1,  0, 0, 0, 0, 0,],  # 14
+                
+           [0, 0, 0, 0, 0,   1, 1, 0, 0, 0,   0, 1, 0, 0, 0,  1, 1, 0, 0, 0,],  # 20
+           [0, 0, 0, 0, 0,   1, 1, 1, 0, 0,   1, 0, 1, 0, 0,  1, 1, 1, 0, 0,],  # 21
+           [0, 0, 0, 0, 0,   0, 1, 1, 1, 0,   0, 1, 0, 1, 0,  0, 1, 1, 1, 0,],  # 22
+           [0, 0, 0, 0, 0,   0, 0, 1, 1, 1,   0, 0, 1, 0, 1,  0, 0, 1, 1, 1,],  # 23
+           [0, 0, 0, 0, 0,   0, 0, 0, 1, 1,   0, 0, 0, 1, 0,  0, 0, 0, 1, 1,],  # 24
+                
+           [0, 0, 0, 0, 0,   0, 0, 0, 0, 0,   1, 1, 0, 0, 0,  0, 1, 0, 0, 0,],  # 30
+           [0, 0, 0, 0, 0,   0, 0, 0, 0, 0,   1, 1, 1, 0, 0,  1, 0, 1, 0, 0,],  # 31
+           [0, 0, 0, 0, 0,   0, 0, 0, 0, 0,   0, 1, 1, 1, 0,  0, 1, 0, 1, 0,],  # 32
+           [0, 0, 0, 0, 0,   0, 0, 0, 0, 0,   0, 0, 1, 1, 1,  0, 0, 1, 0, 1,],  # 33
+           [0, 0, 0, 0, 0,   0, 0, 0, 0, 0,   0, 0, 0, 1, 1,  0, 0, 0, 1, 0,],  # 34
+        ], dtype=float)
+        shape = (4, 5)
+        weight_type = 'nearest_neighbor_diagonal'
+        
+        np.testing.assert_array_equal(DiscreteTimeSquareLattice.make_weight_matrix(shape, weight_type), correct_matrix)
+        
+        
 if __name__ == '__main__':
     unittest.main()
