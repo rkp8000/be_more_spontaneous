@@ -170,7 +170,7 @@ class DiscreteTimeSquareLattice(VoltageFiringRateModel):
         self.n_nodes = np.prod(shape)
         
         self.voltages = np.zeros((self.n_nodes,), dtype=float)
-        self.firing_rates = np.zeros((self.nodes,), dtype=float)
+        self.firing_rates = np.zeros((self.n_nodes,), dtype=float)
         self.node_inputs = np.zeros((self.n_nodes,), dtype=float)
         
         super(self.__class__, self).__init__()
@@ -179,23 +179,26 @@ class DiscreteTimeSquareLattice(VoltageFiringRateModel):
         """
         Step forward one instant in time, optionally providing drive to the network.
         
-        :param drive: drive to network, given as scalar or 1-D array
+        :param scalar_drive: same drive to whole network
+        :param matrix_drive: different drives to each neuron
         """
-        drive = scalar_drive
-        if matrix_drive is not None:
-            drive += matrix_drive.flatten()
+        
+        if matrix_drive is None:
+            drive = scalar_drive
+        else:
+            drive = matrix_drive.flatten() + scalar_drive
         
         self.node_inputs = self.w.dot(self.rs) + drive
         
-        # update all voltages
+        # compute new voltages
         new_vs = self.vs.copy()
         
         # decrement all activations greater than 1
         new_vs[self.vs > 1] -= 1
-        # increment all negative activations
-        new_vs[self.vs < 0] += 1
         # set all smallest activations to self.inactivation_strength
         new_vs[self.vs == 1] = self.inactivation_strength
+        # increment all negative activations
+        new_vs[self.vs < 0] += 1
         
         # probabilistically activate nodes receiving highest input
         self.activation_probabilities = self.sigmoid(self.node_inputs.copy())
@@ -205,7 +208,7 @@ class DiscreteTimeSquareLattice(VoltageFiringRateModel):
         new_vs[np.random.rand(self.n_nodes) < self.activation_probabilities] = self.activation_strength
         
         # store voltages
-        self.vs = vs
+        self.vs = new_vs
         
         self.record_data()
         
@@ -222,6 +225,14 @@ class DiscreteTimeSquareLattice(VoltageFiringRateModel):
         """Sigmoid function using stored parameters."""
         return phi(self.steepness * (x - self.threshold))
     
-    def reshape_to_matrix(self, vector):
-        """Reshape vector to matrix corresponding to original lattice layout."""
-        return np.reshape(vector, self.shape)
+    @property
+    def vs_matrix(self):
+        return self.vs.reshape(self.shape)
+    
+    @vs_matrix.setter
+    def vs_matrix(self, vs_matrix):
+        self.vs = vs_matrix.flatten()
+        
+    @property
+    def rs_matrix(self):
+        return self.rs.reshape(self.shape)

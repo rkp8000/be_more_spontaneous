@@ -238,6 +238,65 @@ class DiscreteTimeSquareLatticeTestCase(unittest.TestCase):
         
         np.testing.assert_array_equal(DiscreteTimeSquareLattice.make_weight_matrix(shape, weight_type), correct_matrix)
         
+    def test_correct_example_update_works(self):
+        # test two networks with different thresholds
+        ntwk = DiscreteTimeSquareLattice(
+            shape=(5, 8),
+            activation_strength=2,
+            inactivation_strength=-2,
+            threshold=1.5,
+            steepness=1000,
+            weight_type='nearest_neighbor_diagonal',
+        )
+        
+        ntwk.vs_matrix = np.array([
+            [0, 0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 2, 1, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, 0],
+        ])
+        
+        correct_next_vs_matrix = np.array([
+            [0, 0, 0, 0, 0, 0, 0, 0],
+            [0, 2, 2, 2, 0, 0, 0, 0],
+            [0, 2, 1,-2, 0, 0, 0, 0],
+            [0, 2, 2, 2, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, 0],
+        ])
+        
+        ntwk.step()
+        np.testing.assert_array_equal(ntwk.vs_matrix, correct_next_vs_matrix)
+        
+        # second network to test
+        ntwk = DiscreteTimeSquareLattice(
+            shape=(5, 8),
+            activation_strength=2,
+            inactivation_strength=-2,
+            threshold=2.5,
+            steepness=1000,
+            weight_type='nearest_neighbor_diagonal',
+        )
+        
+        ntwk.vs_matrix = np.array([
+            [0, 0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 2, 1, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, 0],
+        ])
+        
+        correct_next_vs_matrix = np.array([
+            [0, 0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 2, 2, 0, 0, 0, 0],
+            [0, 0, 1,-2, 0, 0, 0, 0],
+            [0, 0, 2, 2, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, 0],
+        ])
+        
+        ntwk.step()
+        np.testing.assert_array_equal(ntwk.vs_matrix, correct_next_vs_matrix)
+        
         
 if __name__ == '__main__':
     unittest.main()
