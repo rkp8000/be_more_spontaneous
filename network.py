@@ -169,10 +169,6 @@ class DiscreteTimeSquareLattice(VoltageFiringRateModel):
         
         self.n_nodes = np.prod(shape)
         
-        self.voltages = np.zeros((self.n_nodes,), dtype=float)
-        self.firing_rates = np.zeros((self.n_nodes,), dtype=float)
-        self.node_inputs = np.zeros((self.n_nodes,), dtype=float)
-        
         super(self.__class__, self).__init__()
     
     def step(self, scalar_drive=0, matrix_drive=None):
@@ -188,7 +184,7 @@ class DiscreteTimeSquareLattice(VoltageFiringRateModel):
         else:
             drive = matrix_drive.flatten() + scalar_drive
         
-        self.node_inputs = self.w.dot(self.rs) + drive
+        node_inputs = self.w.dot(self.rs) + drive
         
         # compute new voltages
         new_vs = self.vs.copy()
@@ -201,7 +197,7 @@ class DiscreteTimeSquareLattice(VoltageFiringRateModel):
         new_vs[self.vs < 0] += 1
         
         # probabilistically activate nodes receiving highest input
-        self.activation_probabilities = self.sigmoid(self.node_inputs.copy())
+        self.activation_probabilities = self.sigmoid(node_inputs)
         # only allow nodes with zero activation value to have the chance to activate
         self.activation_probabilities[self.vs != 0] = 0
         # sample which nodes have become active, and set their voltage to self.activation_strength
@@ -236,3 +232,156 @@ class DiscreteTimeSquareLattice(VoltageFiringRateModel):
     @property
     def rs_matrix(self):
         return self.rs.reshape(self.shape)
+    
+
+class NeuralSandPileModel1(VoltageFiringRateModel):
+    """Class representing a "neural" version of Bak, Tang, and Wiesenfeld's 1987 sandpile model,
+    which has the key property of self-organized criticality."""
+    
+    @staticmethod
+    def make_weight_matrix(shape, weight_type, **kwargs):
+        """Make a lattice-based weight matrix."""
+        
+        assert weight_type in [
+            'nearest_neighbor_diagonal'
+        ]
+        
+        n_nodes = shape[0] * shape[1]
+        
+        if weight_type == 'nearest_neighbor_diagonal':
+            diag_block = np.zeros((shape[1], shape[1]), dtype=float)
+            for row in range(shape[1]):
+                if row == 0:
+                    diag_block[row, row + 1] = 1
+                elif row == shape[1] - 1:
+                    diag_block[row, row - 1] = 1
+                else:
+                    diag_block[row, row - 1] = 1
+                    diag_block[row, row + 1] = 1
+            off_diag_block = np.zeros((shape[1], shape[1]), dtype=float)
+            for row in range(shape[1]):
+                if row == 0:
+                    off_diag_block[row, row] = 1
+                    off_diag_block[row, row+1] = 1
+                elif row == shape[1] - 1:
+                    off_diag_block[row, row-1] = 1
+                    off_diag_block[row, row] = 1
+                else:
+                    off_diag_block[row, row-1] = 1
+                    off_diag_block[row, row] = 1
+                    off_diag_block[row, row+1] = 1
+                    
+            big_array = [
+                [np.zeros((shape[1], shape[1]), dtype=float) for _ in range(shape[0])]
+                for _ in range(shape[0])
+            ]
+            
+            for row in range(shape[0]):
+                big_array[row][row] = diag_block.copy()
+                if row == 0:
+                    big_array[row][row+1] = off_diag_block.copy()
+                elif row == shape[0] - 1:
+                    big_array[row][row-1] = off_diag_block.copy()
+                else:
+                    big_array[row][row-1] = off_diag_block.copy()
+                    big_array[row][row+1] = off_diag_block.copy()
+
+            temp = [np.concatenate(big_row, axis=1) for big_row in big_array]
+            w = np.concatenate(temp, axis=0)
+            
+        return w
+    
+    def __init__(self, shape, threshold, weight_type, **weight_matrix_kwargs):
+        
+        self.shape = shape
+        self.threshold = threshold
+        
+        self.n_nodes = np.prod(shape)
+        
+        self.w = .125 * self.make_weight_matrix(shape, weight_type, **weight_matrix_kwargs)
+        
+        super(self.__class__, self).__init__()
+    
+    def step(self, scalar_drive=0, matrix_drive=None):
+        """
+        Step forward one instant in time, optionally providing drive to the network.
+        
+        :param scalar_drive: same drive to whole network
+        :param matrix_drive: different drives to each neuron
+        """
+        
+        if matrix_drive is None:
+            drive = scalar_drive
+        else:
+            drive = matrix_drive.flatten() + scalar_drive
+            
+        node_inputs = self.w.dot(self.rs) + drive
+        node_inputs[self.rs > 0] = -self.rs[self.rs > 0]
+        self.vs += node_inputs
+        
+        self.record_data()
+    
+    def randomize_voltages(self, v_max, v_mean):
+        self.vs = np.random.binomial(int(v_max), p=v_mean/int(v_max), size=(self.n_nodes,))
+        
+    def rate_from_voltage(self, vs):
+        """
+        Calculate firing rate from voltage.
+        """
+        rs = vs.copy()
+        rs[rs < self.threshold] = 0
+        return rs
+    
+    @property
+    def vs_matrix(self):
+        return self.vs.reshape(self.shape)
+    
+    @vs_matrix.setter
+    def vs_matrix(self, vs_matrix):
+        self.vs = vs_matrix.flatten()
+        
+    @property
+    def rs_matrix(self):
+        return self.rs.reshape(self.shape)
+    
+
+class RecurrentSoftMaxModel(VoltageFiringRateModel):
+    """
+    Network in which one node fires at a time, chosen through soft-max function.
+    The "inequality" of firing probabilities given inputs to all the nodes is determined by the gain.
+    If the gain is high, nodes with higher inputs are more preferred.
+    
+    :param weights: weight matrix
+    :param gain: gain going into softmax function
+    """
+    
+    def __init__(self, weights, gain):
+        self.w = weights
+        self.n_nodes = weights.shape[0]
+        self.gain = gain
+        
+        super(self.__class__, self).__init__()
+        
+    def step(self, drive=0):
+        """
+        Step forward one time step, optionally providing drive to the network.
+        
+        :param drive: network drive (can be scalar or 1D array)
+        """
+        inputs = self.w.dot(self.rs) + drive
+        self.vs = self.gain * inputs
+        
+    def rate_from_voltage(self, vs):
+        """
+        Calculate firing rate from voltage.
+        """
+        
+        p_fire = np.exp(self.vs)
+        p_fire /= p_fire.sum()
+        
+        active_idx = np.random.choice(range(self.n_nodes), p=p_fire)
+        
+        rs = np.zeros((self.n_nodes,), dtype=float)
+        rs[active_idx] = 1.
+        
+        return rs

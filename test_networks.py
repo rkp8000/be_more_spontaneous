@@ -9,7 +9,7 @@ sys.path.append('/Users/rkp/Dropbox/Repositories')
 from figure_magic import axis_tools
 from unittest_jupyter import run
 
-from network import RateBasedModel, DiscreteTimeSquareLattice
+from network import RateBasedModel, DiscreteTimeSquareLattice, RecurrentSoftMaxModel
 
 
 FONT_SIZE = 20
@@ -296,6 +296,21 @@ class DiscreteTimeSquareLatticeTestCase(unittest.TestCase):
         
         ntwk.step()
         np.testing.assert_array_equal(ntwk.vs_matrix, correct_next_vs_matrix)
+        
+
+class RecurrentSoftMaxTestCase(unittest.TestCase):
+    
+    def test_one_unit_is_active_at_a_time(self):
+        n_nodes = 50
+        
+        weights = np.random.normal(0, 1, (n_nodes, n_nodes))
+        ntwk = RecurrentSoftMaxModel(weights, gain=2)
+        ntwk.vs = np.random.normal(0, 1, (n_nodes,))
+        
+        for _ in range(5):
+            self.assertEqual(np.sum(ntwk.rs), 1)
+            self.assertEqual(np.sum(ntwk.rs == 1), 1)
+            ntwk.step(drive=np.random.normal(0, 1, (n_nodes,)))
         
         
 if __name__ == '__main__':
