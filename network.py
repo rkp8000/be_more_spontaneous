@@ -355,13 +355,21 @@ class RecurrentSoftMaxModel(VoltageFiringRateModel):
     :param gain: gain going into softmax function
     """
     
-    def __init__(self, weights, gain):
+    def __init__(self, weights, gain, shape=None):
         self.w = weights
         self.n_nodes = weights.shape[0]
         self.gain = gain
+        self.shape = shape
         
         super(self.__class__, self).__init__()
         
+        self._rs_history = []  # since firing rate is no longer a deterministic function of voltages
+        
+    def record_data(self):
+        if self.store_voltages:
+            self.vs_history.append(self.vs)
+            self._rs_history.append(self.rs)
+            
     def step(self, drive=0):
         """
         Step forward one time step, optionally providing drive to the network.
@@ -370,6 +378,8 @@ class RecurrentSoftMaxModel(VoltageFiringRateModel):
         """
         inputs = self.w.dot(self.rs) + drive
         self.vs = self.gain * inputs
+        
+        self.record_data()
         
     def rate_from_voltage(self, vs):
         """
@@ -385,3 +395,19 @@ class RecurrentSoftMaxModel(VoltageFiringRateModel):
         rs[active_idx] = 1.
         
         return rs
+    
+    @property
+    def rs_history(self):
+        return self._rs_history
+    
+    @property
+    def vs_matrix(self):
+        return self.vs.reshape(self.shape)
+    
+    @vs_matrix.setter
+    def vs_matrix(self, vs_matrix):
+        self.vs = vs_matrix.flatten()
+    
+    @property
+    def rs_matrix(self):
+        return self.rs.reshape(self.shape)
