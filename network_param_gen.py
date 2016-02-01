@@ -1,6 +1,7 @@
 from __future__ import division, print_function
 from itertools import combinations
 import numpy as np
+from scipy import linalg
 
 
 def wta_memory_combo(n_units, tau, tau_m, tau_c, v_rest, v_rest_c, v_th, steepness,
@@ -72,3 +73,11 @@ def wta_memory_combo(n_units, tau, tau_m, tau_c, v_rest, v_rest_c, v_th, steepne
         weights[m_idx + 2, m_idx] = w_cm
         
     return nodes, weights
+
+
+def chain_weight_matrix(n_chains, chain_length):
+    """
+    Generate a weight matrix corresponding to a stack of horizontal, one-directional chain connections.
+    """
+    base = np.diagflat(np.ones((chain_length-1,), dtype=float), -1)
+    return linalg.block_diag(*[base for _ in range(n_chains)])
