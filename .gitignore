@@ -2,5 +2,5 @@
 *.idea
 *.ipynb_checkpoints
 *env
-
+*.mp4
 *sandbox.ipynb
