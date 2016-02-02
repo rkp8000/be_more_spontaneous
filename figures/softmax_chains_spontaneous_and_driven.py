@@ -177,6 +177,7 @@ def driven(config):
     
     for ax in axs_twin:
         ax.set_ylim(0, 4)
+        ax.set_yticks([0, 2, 4])
         axis_tools.set_fontsize(ax, FONT_SIZE)
         
     for ax in axs.flatten():
