@@ -153,7 +153,7 @@ def driven(config):
         sharex=True, sharey=True, tight_layout=True
     )
     
-    axs_twin = []
+    axs_twin = np.zeros(axs.shape, dtype=object)
     for t_ctr in range(N_TRIALS):
         
         for ctr, (drives, rs, ax) in enumerate(zip(drives_plottables[t_ctr], rs_plottables[t_ctr], axs[:, t_ctr])):
@@ -167,15 +167,18 @@ def driven(config):
             ax_twin = ax.twinx()
             ax_twin.set_color_cycle(COLORS)
             ax_twin.plot(drives, lw=LW, ls='--')
-            axs_twin.append(ax_twin)
-            
+            axs_twin[ctr, t_ctr] = ax_twin
+
     for ax in axs[:, 0]:
         ax.set_ylabel('Rate')
+        
+    for ax in axs_twin[:, -1]:
+        ax.set_ylabel('Drive')
     
     for ax in axs[-1, :]:
         ax.set_xlabel('Time')
     
-    for ax in axs_twin:
+    for ax in axs_twin.flatten():
         ax.set_ylim(0, 4)
         ax.set_yticks([0, 2, 4])
         axis_tools.set_fontsize(ax, FONT_SIZE)
