@@ -411,3 +411,48 @@ class RecurrentSoftMaxModel(VoltageFiringRateModel):
     @property
     def rs_matrix(self):
         return self.rs.reshape(self.shape)
+    
+    
+class RecurrentSoftMaxLingeringModel(RecurrentSoftMaxModel):
+    """
+    Network similar to RecurrentSoftMax model, except that node activity lingers after activation.
+    
+    :param weights: weight matrix
+    :param gain: gain going into softmax function
+    :param lingering_input: lingering input value
+    """
+    
+    def __init__(self, weights, gain, lingering_input, shape=None):
+        
+        super(self.__class__, self).__init__(weights, gain, shape)
+        
+        self.lingering_input = lingering_input
+        self.lingering_units = np.zeros((self.n_nodes,), dtype=float)
+        
+    def step(self, drive=0):
+        """
+        Step forward one time step, optionally providing drive to the network.
+        
+        :param drive: network drive (can be scalar or 1D array)
+        """
+        inputs = self.w.dot(self.rs) + self.lingering_units + drive
+        self.vs = self.gain * inputs
+        
+        self.record_data()
+        
+    def rate_from_voltage(self, vs):
+        """
+        Calculate firing rate from voltage.
+        """
+        
+        p_fire = np.exp(self.vs)
+        p_fire /= p_fire.sum()
+        
+        active_idx = np.random.choice(range(self.n_nodes), p=p_fire)
+        
+        rs = np.zeros((self.n_nodes,), dtype=float)
+        rs[active_idx] = 1.
+        
+        self.lingering_units[active_idx] = self.lingering_input
+        
+        return rs
