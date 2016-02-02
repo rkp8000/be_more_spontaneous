@@ -380,19 +380,23 @@ class RecurrentSoftMaxModel(VoltageFiringRateModel):
         self.vs = self.gain * inputs
         
         self.record_data()
+    
+    def get_active_idx(self, vs):
+        """
+        Randomly sample which node should be active given all the nodes' voltages.
+        """
         
+        p_fire = np.exp(vs)
+        p_fire /= p_fire.sum()
+        return np.random.choice(range(self.n_nodes), p=p_fire)
+    
     def rate_from_voltage(self, vs):
         """
         Calculate firing rate from voltage.
         """
         
-        p_fire = np.exp(self.vs)
-        p_fire /= p_fire.sum()
-        
-        active_idx = np.random.choice(range(self.n_nodes), p=p_fire)
-        
         rs = np.zeros((self.n_nodes,), dtype=float)
-        rs[active_idx] = 1.
+        rs[self.get_active_idx(vs)] = 1.
         
         return rs
     
@@ -445,10 +449,7 @@ class RecurrentSoftMaxLingeringModel(RecurrentSoftMaxModel):
         Calculate firing rate from voltage.
         """
         
-        p_fire = np.exp(self.vs)
-        p_fire /= p_fire.sum()
-        
-        active_idx = np.random.choice(range(self.n_nodes), p=p_fire)
+        active_idx = self.get_active_idx(vs)
         
         rs = np.zeros((self.n_nodes,), dtype=float)
         rs[active_idx] = 1.
