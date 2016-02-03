@@ -379,7 +379,7 @@ class RecurrentSoftMaxModel(object):
         
         :param drive: network drive (can be scalar or 1D array)
         """
-        if self.rs == None:
+        if self.rs is None:
             rs = np.zeros((self.n_nodes,), dtype=float)
         else:
             rs = self.rs
@@ -446,7 +446,7 @@ class RecurrentSoftMaxLingeringModel(RecurrentSoftMaxModel):
         
         :param drive: network drive (can be scalar or 1D array)
         """
-        if self.rs == None:
+        if self.rs is None:
             rs = np.zeros((self.n_nodes,), dtype=float)
         else:
             rs = self.rs
