@@ -423,15 +423,15 @@ class RecurrentSoftMaxLingeringModel(RecurrentSoftMaxModel):
     
     :param weights: weight matrix
     :param gain: gain going into softmax function
-    :param lingering_input: lingering input value
+    :param lingering_input_value: lingering input value
     """
     
     def __init__(self, weights, gain, lingering_input, shape=None):
         
         super(self.__class__, self).__init__(weights, gain, shape)
         
-        self.lingering_input = lingering_input
-        self.lingering_units = np.zeros((self.n_nodes,), dtype=float)
+        self.lingering_input_value = lingering_input_value
+        self.lingering_inputs = np.zeros((self.n_nodes,), dtype=float)
         
     def step(self, drive=0):
         """
@@ -439,7 +439,7 @@ class RecurrentSoftMaxLingeringModel(RecurrentSoftMaxModel):
         
         :param drive: network drive (can be scalar or 1D array)
         """
-        inputs = self.w.dot(self.rs) + self.lingering_units + drive
+        inputs = self.w.dot(self.rs) + self.lingering_inputs + drive
         self.vs = self.gain * inputs
         
         self.record_data()
@@ -454,6 +454,6 @@ class RecurrentSoftMaxLingeringModel(RecurrentSoftMaxModel):
         rs = np.zeros((self.n_nodes,), dtype=float)
         rs[active_idx] = 1.
         
-        self.lingering_units[active_idx] = self.lingering_input
+        self.lingering_inputs[active_idx] = self.lingering_input_value
         
         return rs
