@@ -1,6 +1,7 @@
 from __future__ import division, print_function
 from copy import deepcopy as copy
 import matplotlib.pyplot as plt
+plt.style.use('ggplot')
 import numpy as np
 import os
 import sys
