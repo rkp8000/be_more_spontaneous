@@ -389,7 +389,7 @@ class RecurrentSoftMaxModel(object):
         self.rs = self.rate_from_voltage(self.vs)
         
         self.record_data()
-    
+
     def get_active_idx(self, vs):
         """
         Randomly sample which node should be active given all the nodes' voltages.
@@ -446,8 +446,14 @@ class RecurrentSoftMaxLingeringModel(RecurrentSoftMaxModel):
         
         :param drive: network drive (can be scalar or 1D array)
         """
-        inputs = self.w.dot(self.rs) + self.lingering_inputs + drive
+        if self.rs == None:
+            rs = np.zeros((self.n_nodes,), dtype=float)
+        else:
+            rs = self.rs
+
+        inputs = self.w.dot(rs) + self.lingering_inputs + drive
         self.vs = self.gain * inputs
+        self.rs = self.rate_from_voltage(self.vs)
         
         self.record_data()
         
