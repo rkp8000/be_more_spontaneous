@@ -237,5 +237,6 @@ def replay_weak_cxns_added(config):
     for ax in axs.flatten():
         ax.set_xlim(0, len(DRIVE_BY_COORDINATE[0]) - 1)
         ax.set_ylim(0, 1)
+        ax.set_xticks(range(len(DRIVE_BY_COORDINATE[0])))
         ax.axvline(len(DRIVE_BY_COORDINATE[0])/2 - 0.5, c=(0.5, 0.5, 0.5), ls='--')
         axis_tools.set_fontsize(ax, FONT_SIZE)
