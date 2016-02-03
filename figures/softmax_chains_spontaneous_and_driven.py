@@ -131,7 +131,7 @@ def driven(config):
         
         drives_matrix = []
         
-        for t, node_coord in enumerate(DRIVE_NODE_COORDINATES[t_ctr]):
+        for node_coord in DRIVE_NODE_COORDINATES[t_ctr]:
             drive = np.zeros((N_CHAINS, CHAIN_LENGTH), dtype=float)
             drive[node_coord] = DRIVE_AMPLITUDE
             drives_matrix.append(drive)
