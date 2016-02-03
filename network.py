@@ -345,7 +345,7 @@ class NeuralSandPileModel1(VoltageFiringRateModel):
         return self.rs.reshape(self.shape)
     
 
-class RecurrentSoftMaxModel(VoltageFiringRateModel):
+class RecurrentSoftMaxModel(object):
     """
     Network in which one node fires at a time, chosen through soft-max function.
     The "inequality" of firing probabilities given inputs to all the nodes is determined by the gain.
@@ -361,14 +361,17 @@ class RecurrentSoftMaxModel(VoltageFiringRateModel):
         self.gain = gain
         self.shape = shape
 
-        super(RecurrentSoftMaxModel, self).__init__()
+        self.vs = None
+        self.rs = None
+
+        self.vs_history = []
         
-        self._rs_history = []  # since firing rate is no longer a deterministic function of voltages
+        self.rs_history = []  # since firing rate is no longer a deterministic function of voltages
         
     def record_data(self):
         if self.store_voltages:
             self.vs_history.append(self.vs)
-            self._rs_history.append(self.rs)
+            self.rs_history.append(self.rs)
             
     def step(self, drive=0):
         """
@@ -376,8 +379,14 @@ class RecurrentSoftMaxModel(VoltageFiringRateModel):
         
         :param drive: network drive (can be scalar or 1D array)
         """
-        inputs = self.w.dot(self.rs) + drive
+        if self.rs == None:
+            rs = np.zeros((self.n_nodes,), dtype=float)
+        else:
+            rs = self.rs
+
+        inputs = self.w.dot(rs) + drive
         self.vs = self.gain * inputs
+        self.rs = self.rate_from_voltage(self.vs)
         
         self.record_data()
     
@@ -388,7 +397,9 @@ class RecurrentSoftMaxModel(VoltageFiringRateModel):
         
         p_fire = np.exp(vs)
         p_fire /= p_fire.sum()
-        return np.random.choice(range(self.n_nodes), p=p_fire)
+        active_idx = np.random.choice(range(self.n_nodes), p=p_fire)
+
+        return active_idx
     
     def rate_from_voltage(self, vs):
         """
@@ -399,10 +410,6 @@ class RecurrentSoftMaxModel(VoltageFiringRateModel):
         rs[self.get_active_idx(vs)] = 1.
         
         return rs
-    
-    @property
-    def rs_history(self):
-        return self._rs_history
     
     @property
     def vs_matrix(self):
