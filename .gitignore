@@ -4,3 +4,5 @@
 *env
 *.mp4
 *sandbox.ipynb
+*.DS_Store
+*.DS_store
