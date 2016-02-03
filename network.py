@@ -360,8 +360,8 @@ class RecurrentSoftMaxModel(VoltageFiringRateModel):
         self.n_nodes = weights.shape[0]
         self.gain = gain
         self.shape = shape
-        
-        super(self.__class__, self).__init__()
+
+        super(RecurrentSoftMaxModel, self).__init__()
         
         self._rs_history = []  # since firing rate is no longer a deterministic function of voltages
         
@@ -426,7 +426,7 @@ class RecurrentSoftMaxLingeringModel(RecurrentSoftMaxModel):
     :param lingering_input_value: lingering input value
     """
     
-    def __init__(self, weights, gain, lingering_input, shape=None):
+    def __init__(self, weights, gain, lingering_input_value, shape=None):
         
         super(self.__class__, self).__init__(weights, gain, shape)
         
