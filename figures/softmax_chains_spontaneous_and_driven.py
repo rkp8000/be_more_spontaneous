@@ -24,9 +24,12 @@ def spontaneous(config):
     
     N_CHAINS = config['N_CHAINS']
     CHAIN_LENGTH = config['CHAIN_LENGTH']
-    GAIN = config['GAIN']
+
+    W_STRONG = config['W_STRONG']
     
-    DURATION = config['DURATION']
+    GAIN = config['GAIN']
+
+    TRIAL_DURATION = config['TRIAL_DURATION']
     
     N_TRIALS = config['N_TRIALS']
     
@@ -36,7 +39,7 @@ def spontaneous(config):
     FONT_SIZE = config['FONT_SIZE']
     
     # make base network
-    weights = 2 * network_param_gen.chain_weight_matrix(
+    weights = W_STRONG * network_param_gen.chain_weight_matrix(
         n_chains=N_CHAINS, chain_length=CHAIN_LENGTH,
     )
     ntwk_base = network.RecurrentSoftMaxModel(
@@ -53,7 +56,7 @@ def spontaneous(config):
         
         # run network with no drive
         ntwk.vs = np.zeros((N_CHAINS * CHAIN_LENGTH,), dtype=float)
-        for t in range(DURATION):
+        for t in range(TRIAL_DURATION):
             ntwk.step()
     
         # do a bit of reshaping on responses to get plottable arrays
@@ -85,7 +88,7 @@ def spontaneous(config):
         ax.set_xlabel('Time')
     
     for ax in axs.flatten():
-        ax.set_xlim(0, DURATION - 1)
+        ax.set_xlim(0, TRIAL_DURATION - 1)
         ax.set_ylim(0, 1)
         axis_tools.set_fontsize(ax, FONT_SIZE)
         
@@ -100,6 +103,9 @@ def driven(config):
     
     N_CHAINS = config['N_CHAINS']
     CHAIN_LENGTH = config['CHAIN_LENGTH']
+
+    W_STRONG = config['W_STRONG']
+
     GAIN = config['GAIN']
     
     DRIVE_NODE_COORDINATES = config['DRIVE_NODE_COORDINATES']
@@ -113,7 +119,7 @@ def driven(config):
     FONT_SIZE = config['FONT_SIZE']
     
     # make base network
-    weights = 2 * network_param_gen.chain_weight_matrix(
+    weights = W_STRONG * network_param_gen.chain_weight_matrix(
         n_chains=N_CHAINS, chain_length=CHAIN_LENGTH,
     )
     ntwk_base = network.RecurrentSoftMaxModel(
