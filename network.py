@@ -477,6 +477,9 @@ class RecurrentSoftMaxLingeringSTDPModel(RecurrentSoftMaxModel):
     Network similar to recurrent soft max lingering model, except that lingering has finite time scale
     and the network has STDP-like synaptic plasticity.
 
+    Here, the weight to node i from node j is increased by an amount alpha * (w_max - w_ij) if
+    node i activates immediately after node j.
+
     :param weights: weight matrix
     :param gain: gain going into softmax function
     :param lingering_input_value: lingering input value
@@ -508,6 +511,7 @@ class RecurrentSoftMaxLingeringSTDPModel(RecurrentSoftMaxModel):
         else:
             rs = self.rs
 
+        # calculate inputs
         inputs = self.w.dot(rs) + self.lingering_inputs + drive
 
         # decrease lingering counter and set lingering inputs to zero if necessary
@@ -515,17 +519,18 @@ class RecurrentSoftMaxLingeringSTDPModel(RecurrentSoftMaxModel):
         self.lingering_inputs[self.lingering_inputs_counter == 0] = 0
 
         # store previous firing rates for STDP purposes
-        rs_prev = self.rs.copy()
+        rs_prev = rs.copy()
 
         # calculate new voltages and firing rates
         self.vs = self.gain * inputs
         self.rs = self.rate_from_voltage(self.vs)
 
-        # run STDP
-        src = rs_prev.nonzero()[0][0]
-        targ = self.rs.nonzero()[0][0]
-        if self.w[targ, src] > 0:
-            self.w[targ, src] += self.alpha * (self.w_max - self.w[targ, src])
+        # run STDP (only operable for one connection per timestep)
+        if rs_prev.sum() > 0:
+            src = rs_prev.nonzero()[0][0]
+            targ = self.rs.nonzero()[0][0]
+            if self.w[targ, src] > 0:
+                self.w[targ, src] += self.alpha * (self.w_max - self.w[targ, src])
 
         self.record_data()
 
