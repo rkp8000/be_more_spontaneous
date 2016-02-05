@@ -272,7 +272,6 @@ def learning(config):
         for ax in axs[:-1].flatten():
             ax.set_xlim(0, len(DRIVE_BY_COORDINATE[0]) - 1)
             ax.set_ylim(0, 1)
-            ax.set_xticks(range(len(DRIVE_BY_COORDINATE[0])))
 
         axs[-1].set_ylim(0, W_MAX * 1.1)
 
