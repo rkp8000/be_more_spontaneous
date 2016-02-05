@@ -470,3 +470,76 @@ class RecurrentSoftMaxLingeringModel(RecurrentSoftMaxModel):
         self.lingering_inputs[active_idx] = self.lingering_input_value
         
         return rs
+
+
+class RecurrentSoftMaxLingeringSTDPModel(RecurrentSoftMaxModel):
+    """
+    Network similar to recurrent soft max lingering model, except that lingering has finite time scale
+    and the network has STDP-like synaptic plasticity.
+
+    :param weights: weight matrix
+    :param gain: gain going into softmax function
+    :param lingering_input_value: lingering input value
+    :param lingering_timescale: timescale of lingering input
+    :param w_max: maximum weight
+    :param alpha: learning rate
+    :param shape: shape of network if it is layed out on a grid
+    """
+
+    def __init__(self, weights, gain, lingering_input_value, lingering_input_timescale, w_max, alpha, shape=None):
+
+        super(self.__class__, self).__init__(weights, gain, shape)
+
+        self.lingering_input_value = lingering_input_value
+        self.lingering_input_timescale = lingering_input_timescale
+        self.w_max = w_max
+        self.alpha = alpha
+        self.lingering_inputs = np.zeros((self.n_nodes,), dtype=float)
+        self.lingering_inputs_counter = np.zeros((self.n_nodes,), dtype=float)
+
+    def step(self, drive=0):
+        """
+        Step forward one time step, optionally providing drive to the network.
+
+        :param drive: network drive (can be scalar or 1D array)
+        """
+        if self.rs is None:
+            rs = np.zeros((self.n_nodes,), dtype=float)
+        else:
+            rs = self.rs
+
+        inputs = self.w.dot(rs) + self.lingering_inputs + drive
+
+        # decrease lingering counter and set lingering inputs to zero if necessary
+        self.lingering_inputs_counter[self.lingering_inputs_counter > 0] -= 1
+        self.lingering_inputs[self.lingering_inputs_counter == 0] = 0
+
+        # store previous firing rates for STDP purposes
+        rs_prev = self.rs.copy()
+
+        # calculate new voltages and firing rates
+        self.vs = self.gain * inputs
+        self.rs = self.rate_from_voltage(self.vs)
+
+        # run STDP
+        src = rs_prev.nonzero()[0][0]
+        targ = self.rs.nonzero()[0][0]
+        if self.w[targ, src] > 0:
+            self.w[targ, src] += self.alpha * (self.w_max - self.w[targ, src])
+
+        self.record_data()
+
+    def rate_from_voltage(self, vs):
+        """
+        Calculate firing rate from voltage.
+        """
+
+        active_idx = self.get_active_idx(vs)
+
+        rs = np.zeros((self.n_nodes,), dtype=float)
+        rs[active_idx] = 1.
+
+        self.lingering_inputs[active_idx] = self.lingering_input_value
+        self.lingering_inputs_counter[active_idx] = self.lingering_input_timescale
+
+        return rs
