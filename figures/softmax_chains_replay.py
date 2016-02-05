@@ -24,11 +24,11 @@ def replay(config):
 
     N_CHAINS = config['N_CHAINS']
     CHAIN_LENGTH = config['CHAIN_LENGTH']
-    GAIN = config['GAIN']
-    LINGERING_INPUT_VALUE = config['LINGERING_INPUT_VALUE']
 
-    DRIVE_NODE_COORDINATES = config['DRIVE_NODE_COORDINATES']
-    DRIVE_AMPLITUDE = config['DRIVE_AMPLITUDE']
+    GAIN = config['GAIN']
+    HDE_INPUT_VALUE = config['HDE_INPUT_VALUE']
+
+    DRIVE_BY_COORDINATE = config['DRIVE_BY_COORDINATE']
 
     N_TRIALS = config['N_TRIALS']
 
@@ -42,7 +42,7 @@ def replay(config):
         n_chains=N_CHAINS, chain_length=CHAIN_LENGTH,
     )
     ntwk_base = network.RecurrentSoftMaxLingeringModel(
-        weights=weights, gain=GAIN, lingering_input_value=LINGERING_INPUT_VALUE, shape=(N_CHAINS, CHAIN_LENGTH),
+        weights=weights, gain=GAIN, lingering_input_value=HDE_INPUT_VALUE, shape=(N_CHAINS, CHAIN_LENGTH),
     )
     ntwk_base.store_voltages = True
 
@@ -60,15 +60,9 @@ def replay(config):
         drives_matrix = []
 
         # run for drive provided
-        for node_coord in DRIVE_NODE_COORDINATES[t_ctr]:
+        for node_coord, amplitude in DRIVE_BY_COORDINATE[t_ctr]:
             drive = np.zeros((N_CHAINS, CHAIN_LENGTH), dtype=float)
-            drive[node_coord] = DRIVE_AMPLITUDE
-            drives_matrix.append(drive)
-            ntwk.step(drive.flatten())
-
-        # run for replay timesteps
-        for _ in DRIVE_NODE_COORDINATES[t_ctr]:
-            drive = np.zeros((N_CHAINS, CHAIN_LENGTH), dtype=float)
+            drive[node_coord] = amplitude
             drives_matrix.append(drive)
             ntwk.step(drive.flatten())
 
@@ -119,9 +113,10 @@ def replay(config):
         axis_tools.set_fontsize(ax, FONT_SIZE)
 
     for ax in axs.flatten():
-        ax.set_xlim(0, 2 * len(DRIVE_NODE_COORDINATES[0]) - 1)
+        ax.set_xlim(0, len(DRIVE_BY_COORDINATE[0]) - 1)
         ax.set_ylim(0, 1)
-        ax.axvline(len(DRIVE_NODE_COORDINATES[0]) - 0.5, c=(0.5, 0.5, 0.5), ls='--')
+        ax.set_xticks(range(len(DRIVE_BY_COORDINATE[0])))
+        ax.axvline(len(DRIVE_BY_COORDINATE[0])/2 - 0.5, c=(0.5, 0.5, 0.5), ls='--')
         axis_tools.set_fontsize(ax, FONT_SIZE)
 
 
@@ -137,8 +132,9 @@ def replay_weak_cxns_added(config):
     CHAIN_LENGTH = config['CHAIN_LENGTH']
     WEAK_CXN_IDXS = config['WEAK_CXN_IDXS']
     WEAK_CXN_WEIGHT = config['WEAK_CXN_WEIGHT']
+
     GAIN = config['GAIN']
-    LINGERING_INPUT_VALUE = config['LINGERING_INPUT_VALUE']
+    HDE_INPUT_VALUE = config['HDE_INPUT_VALUE']
 
     DRIVE_BY_COORDINATE = config['DRIVE_BY_COORDINATE']
 
@@ -165,7 +161,7 @@ def replay_weak_cxns_added(config):
         weights[targ_id, src_id] = WEAK_CXN_WEIGHT
 
     ntwk_base = network.RecurrentSoftMaxLingeringModel(
-        weights=weights, gain=GAIN, lingering_input_value=LINGERING_INPUT_VALUE, shape=(N_CHAINS, CHAIN_LENGTH),
+        weights=weights, gain=GAIN, lingering_input_value=HDE_INPUT_VALUE, shape=(N_CHAINS, CHAIN_LENGTH),
     )
     ntwk_base.store_voltages = True
 
@@ -208,7 +204,6 @@ def replay_weak_cxns_added(config):
 
     axs_twin = np.zeros(axs.shape, dtype=object)
     for t_ctr in range(N_TRIALS):
-
         for ctr, (drives, rs, ax) in enumerate(zip(drives_plottables[t_ctr], rs_plottables[t_ctr], axs[:, t_ctr])):
 
             if ctr == 0:
