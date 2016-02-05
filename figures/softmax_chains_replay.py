@@ -25,6 +25,8 @@ def replay(config):
     N_CHAINS = config['N_CHAINS']
     CHAIN_LENGTH = config['CHAIN_LENGTH']
 
+    W_STRONG = config['W_STRONG']
+
     GAIN = config['GAIN']
     HDE_INPUT_VALUE = config['HDE_INPUT_VALUE']
 
@@ -38,7 +40,7 @@ def replay(config):
     FONT_SIZE = config['FONT_SIZE']
 
     # make base network
-    weights = 2 * network_param_gen.chain_weight_matrix(
+    weights = W_STRONG * network_param_gen.chain_weight_matrix(
         n_chains=N_CHAINS, chain_length=CHAIN_LENGTH,
     )
     ntwk_base = network.RecurrentSoftMaxLingeringModel(
@@ -130,8 +132,10 @@ def replay_weak_cxns_added(config):
 
     N_CHAINS = config['N_CHAINS']
     CHAIN_LENGTH = config['CHAIN_LENGTH']
+
+    W_STRONG = config['W_STRONG']
+    W_WEAK = config['W_WEAK']
     WEAK_CXN_IDXS = config['WEAK_CXN_IDXS']
-    WEAK_CXN_WEIGHT = config['WEAK_CXN_WEIGHT']
 
     GAIN = config['GAIN']
     HDE_INPUT_VALUE = config['HDE_INPUT_VALUE']
@@ -148,17 +152,17 @@ def replay_weak_cxns_added(config):
     shape = (N_CHAINS, CHAIN_LENGTH)
 
     # make chain weight matrix
-    weights = 2 * network_param_gen.chain_weight_matrix(
+    weights = W_STRONG * network_param_gen.chain_weight_matrix(
         n_chains=N_CHAINS, chain_length=CHAIN_LENGTH,
     )
 
     # add connections between pairs of chains
     for chain_idx in range(N_CHAINS - 1):
         # get id of source node
-        src_id = np.ravel_multi_index((chain_idx, WEAK_CXN_IDXS[0]), shape)
+        targ_id = np.ravel_multi_index((chain_idx + 1, WEAK_CXN_IDXS[0]), shape)
         # get id of target node
-        targ_id = np.ravel_multi_index((chain_idx + 1, WEAK_CXN_IDXS[1]), shape)
-        weights[targ_id, src_id] = WEAK_CXN_WEIGHT
+        src_id = np.ravel_multi_index((chain_idx, WEAK_CXN_IDXS[1]), shape)
+        weights[targ_id, src_id] = W_WEAK
 
     ntwk_base = network.RecurrentSoftMaxLingeringModel(
         weights=weights, gain=GAIN, lingering_input_value=HDE_INPUT_VALUE, shape=(N_CHAINS, CHAIN_LENGTH),
