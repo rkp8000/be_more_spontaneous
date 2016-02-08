@@ -263,6 +263,7 @@ def learning(config):
             ax.set_ylabel('Drive')
 
         axs[-1].set_xlabel('Time')
+        axs[-1].set_ylabel('CXN strength')
 
         for ax in axs_twin:
             ax.set_ylim(0, 4)
