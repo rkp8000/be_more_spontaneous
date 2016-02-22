@@ -54,6 +54,35 @@ class PathDetectionTestCase(unittest.TestCase):
             self.assertEqual(len(paths), len(true_paths))
             self.assertEqual(set(paths), set(true_paths))
 
+    def test_most_probable_paths_get_found_correctly(self):
+        """
+        Make a simple graph that has some paths that are much more probable than others,
+        and make sure these can be successfully sound.
+        """
+
+        weights = np.array([
+            [0, 0, 0, 2, 0],
+            [2, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0.01],
+            [0, 2, 0, 0, 0],
+            [0, 0, .01, 0, 0],
+        ])
+
+        length = 3
+        gain = 2
+        n = 3
+
+        correct_paths = [
+            (0, 1, 3, 0),
+            (1, 3, 0, 1),
+            (3, 0, 1, 3),
+        ]
+
+        paths = metrics.most_probable_paths(weights, gain, length, n)
+
+        self.assertEqual(len(correct_paths), len(paths))
+        self.assertEqual(set(correct_paths), set(paths))
+
 
 if __name__ == '__main__':
     unittest.main()

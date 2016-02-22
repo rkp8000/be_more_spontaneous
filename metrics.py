@@ -45,7 +45,7 @@ def softmax_prob_from_weights(weights, gain):
 
     # define p0 to be stationary distribution, given by principal eigenvector
     evals, evecs = np.linalg.eig(p)
-    idxs_sorted = evals.argsort()[::-1]
+    idxs_sorted = np.real(evals).argsort()[::-1]
 
     # normalize
     p0_unnormed = evecs[:, idxs_sorted[0]]
@@ -68,3 +68,36 @@ def path_probability(path, p, p0):
         prob *= p[node, path[node_ctr]]
 
     return prob
+
+
+def most_probable_paths(weights, gain, length, n):
+    """
+    Find the most probable paths through a network when node transition probabilities
+    are given via a softmax function.
+
+    :param weights: weight matrix (rows are targs, cols are srcs)
+    :param gain: scaling factor in softmax function
+    :param length: length of paths to look for
+    :param n: number of paths to return
+    :return: list of n most probable paths through network
+    """
+
+    paths = paths_of_length(weights, length)
+
+    # get transition matrix
+    p, p0 = softmax_prob_from_weights(weights, gain)
+
+    # calculate path probabilities
+    probs = np.zeros((len(paths),), dtype=float)
+
+    for path_ctr, path in enumerate(paths):
+        probs[path_ctr] = path_probability(path, p, p0)
+
+    # sort calculated probabilities
+    idxs_sorted = probs.argsort()[::-1]
+
+    # return paths corresponding to n highest probabilities
+    paths_array = np.array(paths)[idxs_sorted[:n]]
+
+    # return paths as list of tuples
+    return [tuple(path) for path in paths_array]
