@@ -8,7 +8,12 @@ import metrics
 class PathDetectionTestCase(unittest.TestCase):
 
     def test_path_detection_in_example_graph(self):
+        """
+        Make a simple graph with known paths through it of various lengths, and
+        make sure that our path detection algorithm retrieves them correctly.
+        """
 
+        # this defines the directed graph cxns (row = targ, col = source)
         weights = np.array([
             [0, 1, 0, 0, 0],
             [0, 0, 1, 0, 1],
@@ -48,8 +53,6 @@ class PathDetectionTestCase(unittest.TestCase):
 
             self.assertEqual(len(paths), len(true_paths))
             self.assertEqual(set(paths), set(true_paths))
-
-
 
 
 if __name__ == '__main__':
