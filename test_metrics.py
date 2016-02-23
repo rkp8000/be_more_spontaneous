@@ -112,6 +112,29 @@ class PathDetectionTestCase(unittest.TestCase):
         np.testing.assert_array_equal(rates, rates_correct)
         np.testing.assert_array_equal(reordering, reordering_correct)
 
+    def test_find_start_nodes_with_nonoverlapping_path_trees(self):
+        """
+        Given a network, make sure we can find a pair of starting nodes with non-overlapping path
+        trees emanating from them.
+        """
+        weights = np.array([
+            [0, 1, 1, 0, 0, 0],
+            [1, 0, 0, 0, 0, 0],
+            [0, 1, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 1, 0, 1],
+            [0, 0, 1, 1, 1, 0],
+        ])
+
+        length = 2
+        node_0 = 0
+        nodes = [1, 2, 3, 4]
+
+        node_1_correct = 3
+
+        node_1 = metrics.first_node_non_overlapping_path_tree(node_0, nodes, weights, length)
+        self.assertEqual(node_1, node_1_correct)
+
 
 if __name__ == '__main__':
     unittest.main()
