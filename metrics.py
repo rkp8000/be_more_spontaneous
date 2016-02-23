@@ -123,4 +123,4 @@ def reorder_by_paths(x, paths):
             ordering.append(node)
 
     # reorder the columns
-    return x[:, np.array(ordering)]
+    return x[:, np.array(ordering)], ordering

@@ -103,8 +103,12 @@ class PathDetectionTestCase(unittest.TestCase):
         ]
 
         rates_correct = rates_initial[:, np.array([4, 0, 2, 3, 1])]
+        reordering_correct = np.array([4, 0, 2, 3, 1])
 
-        np.testing.assert_array_equal(metrics.reorder_by_paths(rates_initial, paths), rates_correct)
+        rates, reordering = metrics.reorder_by_paths(rates_initial, paths)
+
+        np.testing.assert_array_equal(rates, rates_correct)
+        np.testing.assert_array_equal(reordering, reordering_correct)
 
 
 if __name__ == '__main__':
