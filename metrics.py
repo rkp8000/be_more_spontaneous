@@ -100,9 +100,9 @@ def most_probable_paths(weights, gain, length, n):
 
     # return paths corresponding to n highest probabilities
     paths_array = np.array(paths)[idxs_sorted[:n]]
-
+    
     # return paths as list of tuples
-    return [tuple(path) for path in paths_array]
+    return [tuple(path) for path in paths_array], np.array(sorted(probs))[::-1]
 
 
 def reorder_by_paths(x, paths):

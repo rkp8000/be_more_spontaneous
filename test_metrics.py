@@ -78,10 +78,12 @@ class PathDetectionTestCase(unittest.TestCase):
             (3, 0, 1, 3),
         ]
 
-        paths = metrics.most_probable_paths(weights, gain, length, n)
+        paths, probs = metrics.most_probable_paths(weights, gain, length, n)
 
         self.assertEqual(len(correct_paths), len(paths))
         self.assertEqual(set(correct_paths), set(paths))
+
+        np.testing.assert_array_equal(probs, np.array(sorted(probs))[::-1])
 
     def test_reordering_of_columns_by_paths(self):
         """
