@@ -127,12 +127,14 @@ class PathDetectionTestCase(unittest.TestCase):
         ])
 
         length = 2
-        node_0 = 0
-        nodes = [1, 2, 3, 4]
+        nodes = [0, 1, 2, 3, 4]
 
+        node_0_correct = 0
         node_1_correct = 3
 
-        node_1 = metrics.first_node_non_overlapping_path_tree(node_0, nodes, weights, length)
+        node_0, node_1 = metrics.first_node_pair_non_overlapping_path_tree(nodes, weights, length)
+
+        self.assertEqual(node_0, node_0_correct)
         self.assertEqual(node_1, node_1_correct)
 
 
