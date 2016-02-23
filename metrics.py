@@ -2,6 +2,8 @@
 Metrics for analyzing networks, etc.
 """
 from __future__ import division, print_function
+from itertools import chain
+from more_itertools import unique_everseen
 import numpy as np
 
 
@@ -101,3 +103,24 @@ def most_probable_paths(weights, gain, length, n):
 
     # return paths as list of tuples
     return [tuple(path) for path in paths_array]
+
+
+def reorder_by_paths(x, paths):
+    """
+    Reorder the columns activity matrix according to a set of
+    the most probable paths through a network. Useful for visualizing repeated sequences.
+    :param x: activity matrix (rows are timepoints, cols are nodes)
+    :param paths: list of tuple paths
+    :return: x with optimally permuted columns
+    """
+
+    # find all the nodes that appear in probable paths, ordered by those paths
+    ordering = list(unique_everseen(chain.from_iterable(paths)))
+
+    # add in the rest of the nodes randomly
+    for node in range(x.shape[1]):
+        if node not in ordering:
+            ordering.append(node)
+
+    # reorder the columns
+    return x[:, np.array(ordering)]

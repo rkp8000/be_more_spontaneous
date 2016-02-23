@@ -83,6 +83,29 @@ class PathDetectionTestCase(unittest.TestCase):
         self.assertEqual(len(correct_paths), len(paths))
         self.assertEqual(set(correct_paths), set(paths))
 
+    def test_reordering_of_columns_by_paths(self):
+        """
+        Make sure we can reorder our data to help visualize it.
+        """
+
+        rates_initial = np.array([
+            [0, 0, 0, 0, 1],
+            [1, 0, 0, 0, 0],
+            [0, 0, 1, 0, 0],
+            [0, 0, 0, 1, 0],
+            [0, 1, 0, 0, 0],
+        ])
+
+        paths = [
+            (4, 0, 2),
+            (0, 3),
+            (0, 2),
+        ]
+
+        rates_correct = rates_initial[:, np.array([4, 0, 2, 3, 1])]
+
+        np.testing.assert_array_equal(metrics.reorder_by_paths(rates_initial, paths), rates_correct)
+
 
 if __name__ == '__main__':
     unittest.main()
