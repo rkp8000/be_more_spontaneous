@@ -126,13 +126,14 @@ def reorder_by_paths(x, paths):
     return x[:, np.array(ordering)], ordering
 
 
-def first_node_pair_non_overlapping_path_tree(nodes, weights, length):
+def first_node_pair_non_overlapping_path_tree(nodes, weights, length, allow_path_loops=True):
     """
     Given a sorted list of nodes of a certain length through a network, find the first pair of
     path-starting nodes whose emanating path trees are completely non overlapping
     :param nodes: sorted list of nodes to check
     :param weights: weight matrix (rows are targs, cols are srcs)
     :param length: path length
+    :param allow_path_loops: whether to allow a node to be returned if its paths include loops
     :return: tuple containing two nodes
     """
 
@@ -141,16 +142,24 @@ def first_node_pair_non_overlapping_path_tree(nodes, weights, length):
         node_0_path_tree = paths_of_length(weights, length, start=node_0)
         node_0_path_tree_elements = set(np.array(node_0_path_tree).flatten())
 
+        if not node_0_path_tree:
+            continue
+
         # loop through
         for node_1 in nodes[node_0 + 1:]:
-            path_tree = paths_of_length(weights, length, start=node_1)
-            path_tree_elements = set(np.array(path_tree).flatten())
+            node_1_path_tree = paths_of_length(weights, length, start=node_1)
+            node_1_path_tree_elements = set(np.array(node_1_path_tree).flatten())
 
-            if not path_tree:
+            if not node_1_path_tree:
                 continue
 
             # save this node if there is no overlap between their path trees
-            if not node_0_path_tree_elements & path_tree_elements:
+            if not node_0_path_tree_elements & node_1_path_tree_elements:
+                if not allow_path_loops:
+                    if any([len(set(path)) != len(path) for path in node_0_path_tree]):
+                        continue
+                    if any([len(set(path)) != len(path) for path in node_1_path_tree]):
+                        continue
                 return node_0, node_1
 
     else:
