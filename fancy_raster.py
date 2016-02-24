@@ -59,12 +59,13 @@ def by_row(ax, spikes, drives):
 
         ax.plot(xs, ys, c='k', lw=spikes[time, row], zorder=1)
 
-    drive_times, drive_rows = drives.nonzero()
+    if drives is not None:
+        drive_times, drive_rows = drives.nonzero()
 
-    for time, row in zip(drive_times, drive_rows):
+        for time, row in zip(drive_times, drive_rows):
 
-        # define x and y coordinates for horizontal line
-        xs = [time - 0.3, time + 0.3]
-        ys = [row, row]
+            # define x and y coordinates for horizontal line
+            xs = [time - 0.3, time + 0.3]
+            ys = [row, row]
 
-        ax.plot(xs, ys, c='r', lw=drives[time, row], zorder=0)
+            ax.plot(xs, ys, c='r', lw=drives[time, row], zorder=0)
