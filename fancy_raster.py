@@ -40,13 +40,15 @@ def by_row_and_color(ax, spike_trains, drives, labels):
         ax.plot(x, y, color=color, lw=2)
 
 
-def by_row(ax, spikes, drives):
+def by_row(ax, spikes, drives, x_offset=0, y_offset=0):
     """
     Plot raster plots with spikes given by black vertical bars, drives by red horizontal bars.
     Line thicknesses indicate spike/drive amplitudes.
     :param ax: axis object
     :param spikes: multi-cell spike train, rows are timepoints, cols are cells
     :param drives: multi-cell drive, rows are timepoints, cols are cells
+    :param x_offset: offset for x position
+    :param y_offset: offset for y position
     """
 
     spike_times, spike_rows = spikes.nonzero()
@@ -54,10 +56,10 @@ def by_row(ax, spikes, drives):
     for time, row in zip(spike_times, spike_rows):
 
         # define x and y coordinates for vertical line
-        xs = [time, time]
-        ys = [row - 0.3, row + 0.3]
+        xs = np.array([time, time])
+        ys = np.array([row - 0.3, row + 0.3])
 
-        ax.plot(xs, ys, c='k', lw=spikes[time, row], zorder=1)
+        ax.plot(xs + x_offset, ys + y_offset, c='k', lw=2*spikes[time, row], zorder=1)
 
     if drives is not None:
         drive_times, drive_rows = drives.nonzero()
@@ -65,7 +67,7 @@ def by_row(ax, spikes, drives):
         for time, row in zip(drive_times, drive_rows):
 
             # define x and y coordinates for horizontal line
-            xs = [time - 0.3, time + 0.3]
-            ys = [row, row]
+            xs = np.array([time - 0.3, time + 0.3])
+            ys = np.array([row, row])
 
-            ax.plot(xs, ys, c='r', lw=drives[time, row], zorder=0)
+            ax.plot(xs + x_offset, ys + y_offset, c='r', lw=2*drives[time, row], zorder=0)
