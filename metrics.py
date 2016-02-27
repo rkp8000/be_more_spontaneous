@@ -164,3 +164,28 @@ def first_node_pair_non_overlapping_path_tree(nodes, weights, length, allow_path
 
     else:
         return None
+
+
+def path_tree_overlaps(nodes, weights, length):
+    """
+    Find the path tree overlap for every pair of nodes for paths of a specific length.
+
+    :param nodes: which nodes to look at
+    :param weights: full weight matrix (rows are targs, cols are srcs)
+    :param length: number of edges in paths
+    :return: overlap matrix, list of path trees for specified nodes
+    """
+
+    path_trees = [paths_of_length(weights, length, start=node) for node in nodes]
+
+    overlap = np.zeros((len(nodes), len(nodes)), dtype=int)
+
+    for node_0_ctr, node_0 in enumerate(nodes):
+        for node_1_ctr, node_1 in enumerate(nodes):
+
+            node_0_elements = set(np.array(path_trees[node_0_ctr]).flatten())
+            node_1_elements = set(np.array(path_trees[node_1_ctr]).flatten())
+
+            overlap[node_0_ctr, node_1_ctr] = len(node_0_elements & node_1_elements)
+
+    return overlap, path_trees

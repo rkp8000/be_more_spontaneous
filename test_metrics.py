@@ -137,6 +137,45 @@ class PathDetectionTestCase(unittest.TestCase):
         self.assertEqual(node_0, node_0_correct)
         self.assertEqual(node_1, node_1_correct)
 
+    def test_path_tree_overlap_works_correctly(self):
+        """
+        Given a network, make sure we can calculate the pairwise overlap in path trees.
+        """
+        weights = np.array([
+            [0, 0, 1, 0, 0, 0],
+            [1, 0, 0, 0, 0, 0],
+            [0, 1, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 1],
+            [0, 0, 0, 1, 0, 0],
+            [0, 0, 0, 0, 1, 0],
+        ])
+
+        nodes = range(6)
+        length = 2
+
+        path_trees_correct = [
+            [(0, 1, 2)],
+            [(1, 2, 0)],
+            [(2, 0, 1)],
+            [(3, 4, 5)],
+            [(4, 5, 3)],
+            [(5, 3, 4)],
+        ]
+
+        overlap_correct = np.array([
+            [3, 3, 3, 0, 0, 0],
+            [3, 3, 3, 0, 0, 0],
+            [3, 3, 3, 0, 0, 0],
+            [0, 0, 0, 3, 3, 3],
+            [0, 0, 0, 3, 3, 3],
+            [0, 0, 0, 3, 3, 3],
+        ])
+
+        overlap, path_trees = metrics.path_tree_overlaps(nodes, weights, length)
+
+        np.testing.assert_array_equal(overlap, overlap_correct)
+        self.assertEqual(path_trees, path_trees_correct)
+
 
 if __name__ == '__main__':
     unittest.main()
