@@ -189,3 +189,13 @@ def path_tree_overlaps(nodes, weights, length):
             overlap[node_0_ctr, node_1_ctr] = len(node_0_elements & node_1_elements)
 
     return overlap, path_trees
+
+
+def paths_include_loops(paths):
+    """
+    Check if there are any repeated elements in any of the paths in a list of paths.
+    :param paths: list of paths
+    :return: True if any path contains repeated nodes.
+    """
+
+    return any([len(set(path)) != len(path) for path in paths])
