@@ -176,15 +176,20 @@ def path_tree_overlaps(nodes, weights, length):
     :return: overlap matrix, list of path trees for specified nodes
     """
 
-    path_trees = [paths_of_length(weights, length, start=node) for node in nodes]
+    path_trees = [
+        list(chain(*[paths_of_length(weights, length, start=node) for length in range(1, length + 1)]))
+        for node in nodes
+    ]
+
+    #path_trees = [paths_of_length(weights, length, start=node) for node in nodes]
 
     overlap = np.zeros((len(nodes), len(nodes)), dtype=int)
 
     for node_0_ctr, node_0 in enumerate(nodes):
         for node_1_ctr, node_1 in enumerate(nodes):
 
-            node_0_elements = set(np.array(path_trees[node_0_ctr]).flatten())
-            node_1_elements = set(np.array(path_trees[node_1_ctr]).flatten())
+            node_0_elements = set(chain(*path_trees[node_0_ctr]))
+            node_1_elements = set(chain(*path_trees[node_1_ctr]))
 
             overlap[node_0_ctr, node_1_ctr] = len(node_0_elements & node_1_elements)
 
