@@ -4,9 +4,11 @@ governed by the softmax rule.
 """
 from __future__ import division, print_function
 from copy import deepcopy
-from more_itertools import unique_everseen
 import matplotlib.pyplot as plt
 import numpy as np
+import sys
+
+sys.path.append('/Users/rkp/Dropbox/Repositories/be_more_spontaneous')
 
 
 import fancy_raster
@@ -14,9 +16,14 @@ import metrics
 import network
 
 
-def spontaneous(config):
+def make_and_save_network(config):
     """
-    Run simulation of spontaneous activity.
+    Make and save a random network we can use for later experiments. The whole point is to ensure that
+    the network we've created has a few features that will make visualizing things much easier in the future. Since
+    the network is random and directed, it will have many paths throughout it exhibiting a tree-like structure.
+    For the purposes of our analysis, we would like to be able to focus on two distinct path trees of a certain
+    maximum path length, and which include no loops. This code generates random networks until this is the case
+    (which it is with a high probability, given the right settings).
     """
 
     SEED = config['SEED']
@@ -29,6 +36,132 @@ def spontaneous(config):
     GAIN = config['GAIN']
 
     PATH_LENGTH = config['PATH_LENGTH']
+    MAX_ATTEMPTS = config['MAX_ATTEMPTS']
+
+    SAVE_FILE_NAME = config['SAVE_FILE_NAME']
+
+    np.random.seed(SEED)
+
+    # loop over attempts to make network with desired properties
+    for trial_ctr in range(MAX_ATTEMPTS):
+
+        print('Trial number {}'.format(trial_ctr))
+
+        # make a random weight matrix
+        nodes = range(N_NODES)
+        weights = W_STRONG * (np.random.rand(N_NODES, N_NODES) < P_CXN).astype(float)
+        np.fill_diagonal(weights, 0)
+
+        # calculate overlap of all node pairs' path trees
+        path_tree_overlaps, path_trees = metrics.path_tree_overlaps(nodes, weights, PATH_LENGTH)
+
+        # set all elements of path_tree_overlaps to -1 if one node in pair as no paths in tree
+        path_tree_sizes = np.array([len(path_tree) for path_tree in path_trees])
+        path_tree_overlaps[path_tree_sizes == 0, :] = -1
+        path_tree_overlaps[:, path_tree_sizes == 0] = -1
+
+        # set all elements of path_tree_overlaps to -1 if one node in pair loops in its paths
+        path_tree_loops = np.array([metrics.paths_include_loops(path_tree) for path_tree in path_trees])
+        path_tree_overlaps[path_tree_loops, :] = -1
+        path_tree_overlaps[:, path_tree_loops] = -1
+
+        # get all node pairs with distinct but non-zero path trees
+        node_pairs_with_distinct_path_trees = zip(*(path_tree_overlaps == 0).nonzero())
+
+        # make sure there is at least one pair of nodes with distinct path trees
+        if not node_pairs_with_distinct_path_trees:
+            print('No node pairs with distinct, non-zero, non-looping path trees.')
+            continue
+
+        # calculate sum total of path tree sizes for every pair of nodes
+        path_tree_sizes_paired = []
+        for node_0, node_1 in node_pairs_with_distinct_path_trees:
+            path_tree_sizes_paired.append(path_tree_sizes[node_0] + path_tree_sizes[node_1])
+
+        path_tree_sizes_paired = np.array(path_tree_sizes_paired)
+
+        if len(path_tree_sizes_paired[path_tree_sizes_paired > 2]) == 0:
+            print('No distinct path tree pairs with summed size > 2.')
+            continue
+
+        # find node pairs with minimum summed input greater than 2
+        min_size = path_tree_sizes_paired[path_tree_sizes_paired > 2].min()
+        print('Min summed path tree size: {}.'.format(min_size))
+        candidate_node_pair_idxs = np.where(path_tree_sizes_paired == min_size)[0]
+        candidate_node_pairs = np.array(node_pairs_with_distinct_path_trees)[candidate_node_pair_idxs]
+
+        # if there are multiple node pairs with same minimum, pick pair with highest probabilities
+        candidate_probabilities = []
+        _, p0 = metrics.softmax_prob_from_weights(weights, GAIN)
+        for node_0, node_1 in candidate_node_pairs:
+            candidate_probabilities.append(p0[node_0] * p0[node_1])
+        candidate_probabilities = np.array(candidate_probabilities)
+
+        # choose final starting nodes for all subsequent examples
+        node_0, node_1 = candidate_node_pairs[candidate_probabilities.argmax()]
+        # get their path trees
+        node_0_path_tree = metrics.paths_of_length(weights, PATH_LENGTH, start=node_0)
+        node_1_path_tree = metrics.paths_of_length(weights, PATH_LENGTH, start=node_1)
+
+        # swap if necessary so that node_0_path_tree has at least 2 paths
+        if len(node_0_path_tree) == 1:
+            node_0, node_1 = node_1, node_0
+            node_0_path_tree, node_1_path_tree = node_1_path_tree, node_0_path_tree
+
+        print('node_0 before reordering: {}'.format(node_0))
+        print('node_1 before reordering: {}'.format(node_1))
+        print('node_0_path_tree before reordering')
+        print(node_0_path_tree)
+        print('node_1_path_tree before reordering')
+        print(node_1_path_tree)
+
+        # relabel everything for optimal sequential visualization
+        _, reordering = metrics.reorder_by_paths(weights, node_0_path_tree + node_1_path_tree)
+        node_0 = reordering.index(node_0)
+        node_1 = reordering.index(node_1)
+
+        # relabel weight matrix rows and columns
+        weights = weights[reordering, :]
+        weights = weights[:, reordering]
+
+        node_0_path_tree = metrics.paths_of_length(weights, PATH_LENGTH, start=node_0)
+        node_1_path_tree = metrics.paths_of_length(weights, PATH_LENGTH, start=node_1)
+
+        print('reordering:')
+        print(reordering)
+
+        break
+
+    else:
+        print('Maximum number of trials exceeded!')
+        return
+
+    # make a network with this weight matrix
+    ntwk = network.RecurrentSoftMaxModel(weights, GAIN)
+
+    # bind two root nodes and path trees to network
+    ntwk.node_0 = node_0
+    ntwk.node_1 = node_1
+    ntwk.node_0_path_tree = metrics.paths_of_length(weights, PATH_LENGTH, node_0)
+    ntwk.node_1_path_tree = metrics.paths_of_length(weights, PATH_LENGTH, node_1)
+
+    print('node_0 after reordering: {}'.format(node_0))
+    print('node_1 after reordering: {}'.format(node_1))
+    print('node_0_path_tree after reordering')
+    print(ntwk.node_0_path_tree)
+    print('node_1_path_tree after reordering')
+    print(ntwk.node_1_path_tree)
+
+    # save the network
+    np.save(SAVE_FILE_NAME, [ntwk])
+
+
+def spontaneous(config):
+    """
+    Run simulation of spontaneous activity.
+    """
+
+    SEED = config['SEED']
 
     RUN_LENGTH_NO_DRIVE = config['RUN_LENGTH_NO_DRIVE']
     TRIAL_LENGTH = config['TRIAL_LENGTH']
@@ -38,59 +171,10 @@ def spontaneous(config):
     FIG_SIZE_WITH_DRIVE = config['FIG_SIZE_WITH_DRIVE']
 
     LOAD_FILE_NAME = config['LOAD_FILE_NAME']
-    SAVE_FILE_NAME = config['SAVE_FILE_NAME']
 
     np.random.seed(SEED)
 
-    if LOAD_FILE_NAME:
-        ntwk_base = np.load(LOAD_FILE_NAME)[0]
-
-    else:
-        # loop over attempts to make network with desired properties
-        while True:
-            # make a random weight matrix
-            weights = W_STRONG * (np.random.rand(N_NODES, N_NODES) < P_CXN).astype(float)
-            np.fill_diagonal(weights, 0)
-
-            # make sure it has at least two nodes whose path trees don't overlap
-            paths, _ = metrics.most_probable_paths(weights, GAIN, PATH_LENGTH, None)
-            prioritized_start_nodes = unique_everseen([path[0] for path in paths])
-            found_start_nodes = metrics.first_node_pair_non_overlapping_path_tree(
-                prioritized_start_nodes, weights, PATH_LENGTH, allow_path_loops=False,
-            )
-
-            # make sure that at least one path tree contains two distinct paths
-            if found_start_nodes:
-
-                node_0, node_1 = found_start_nodes
-
-                node_0_path_tree = metrics.paths_of_length(weights, PATH_LENGTH, node_0)
-                node_1_path_tree = metrics.paths_of_length(weights, PATH_LENGTH, node_1)
-
-                if len(node_0_path_tree) > 1:
-                    break
-
-                if len(node_1_path_tree) > 1:
-                    # relabel things so node
-                    node_0, node_1 = node_1, node_0
-                    break
-
-        # reorder columns and rows of weight matrix according to spotlighted path trees
-        weights, ordering = metrics.reorder_by_paths(weights, paths)
-        node_0 = ordering.index(node_0)
-        node_1 = ordering.index(node_1)
-
-        # make a network with this weight matrix
-        ntwk_base = network.RecurrentSoftMaxModel(weights, GAIN)
-
-        # bind two root nodes and path trees to network
-        ntwk_base.node_0 = node_0
-        ntwk_base.node_1 = node_1
-        ntwk_base.node_0_path_tree = metrics.paths_of_length(weights, PATH_LENGTH, node_0)
-        ntwk_base.node_1_path_tree = metrics.paths_of_length(weights, PATH_LENGTH, node_1)
-
-        # save the network
-        np.save(SAVE_FILE_NAME, [ntwk_base], allow_pickle=True)
+    ntwk_base = np.load(LOAD_FILE_NAME)[0]
 
     # let the network run spontaneously
     ntwk = deepcopy(ntwk_base)
@@ -102,6 +186,7 @@ def spontaneous(config):
     spikes = np.array(ntwk.rs_history)
 
     fig, ax = plt.subplots(1, 1, figsize=FIG_SIZE_NO_DRIVE, tight_layout=True)
+    ax.set_title('Free-running spontaneous activity')
     fancy_raster.by_row(ax, spikes, drives=None)
 
     # drive the network from two different initial conditions several times
@@ -109,8 +194,8 @@ def spontaneous(config):
     ntwk.store_voltages = True
 
     # construct drives
-    drives = np.zeros((2 * TRIAL_LENGTH * N_REPEATS, N_NODES), dtype=float)
-    node_0_drive_times = np.arange(TRIAL_LENGTH * N_REPEATS, TRIAL_LENGTH)
+    drives = np.zeros((2 * TRIAL_LENGTH * N_REPEATS, ntwk.w.shape[0]), dtype=float)
+    node_0_drive_times = np.arange(0, TRIAL_LENGTH * N_REPEATS, TRIAL_LENGTH)
     node_1_drive_times = TRIAL_LENGTH * N_REPEATS + node_0_drive_times
     drives[node_0_drive_times, ntwk.node_0] = 1
     drives[node_1_drive_times, ntwk.node_1] = 1
@@ -121,6 +206,7 @@ def spontaneous(config):
     spikes = np.array(ntwk.rs_history)
 
     fig, ax = plt.subplots(1, 1, figsize=FIG_SIZE_WITH_DRIVE, tight_layout=True)
+    ax.set_title('Variability in spontaneous activity from fixed initial condition')
     fancy_raster.by_row(ax, spikes, drives)
 
     # show how changes in gain affect randomness???
@@ -135,24 +221,126 @@ def weakly_driven(config):
 
     LOAD_FILE_NAME = config['LOAD_FILE_NAME']
 
+    WEAK_DRIVE_AMPLITUDE = config['WEAK_DRIVE_AMPLITUDE']
+    STRONG_DRIVE_AMPLITUDE = config['STRONG_DRIVE_AMPLITUDE']
+
     PATH_MISMATCH_TIME = config['PATH_MISMATCH_TIME']
 
+    TRIAL_LENGTH = config['TRIAL_LENGTH']
     N_REPEATS = config['N_REPEATS']
 
-    # load network
+    FIG_SIZE = config['FIG_SIZE']
 
-    # construct weak drives matching two paths in path tree
+    np.random.seed(SEED)
+
+    # load network
+    ntwk_base = np.load(LOAD_FILE_NAME)[0]
+    n_nodes = ntwk_base.w.shape[0]
+
+    # open figure
+    fig, axs = plt.subplots(4, 1, figsize=FIG_SIZE, tight_layout=True)
+    
+    # pick two paths from same tree
+    path_00 = ntwk_base.node_0_path_tree[0]
+    path_01 = ntwk_base.node_1_path_tree[1]
+
+    # construct weak drives matching two paths from node 0's path tree
+    drives = np.zeros((2 * TRIAL_LENGTH * N_REPEATS, n_nodes), dtype=float)
+
+    for repeat in range(N_REPEATS):
+
+        # calculate offsets for drives corresponding to each node
+        t_node_0 = repeat * TRIAL_LENGTH
+        t_node_1 = repeat * TRIAL_LENGTH + N_REPEATS * TRIAL_LENGTH
+
+        # set drives at specified timepoint and node to 1
+        drives[t_node_0, path_00[0]] = STRONG_DRIVE_AMPLITUDE
+        drives[t_node_1, path_01[0]] = STRONG_DRIVE_AMPLITUDE
+        for t_ctr, node in enumerate(path_00[1:]):
+            drives[t_node_0 + t_ctr + 1, node] = WEAK_DRIVE_AMPLITUDE
+        for t_ctr, node in enumerate(path_01[1:]):
+            drives[t_node_1 + t_ctr + 1, node] = WEAK_DRIVE_AMPLITUDE
+
+    # present weak drive path-matched to network
+    ntwk = deepcopy(ntwk_base)
+    ntwk.store_voltages = True
+
+    for drive in drives:
+        ntwk.step(drive)
+
+    spikes = np.array(ntwk.rs_history)
+
+    # show network response
+    ax = axs[0]
+    ax.set_title('Response to weak drive matching anatomical paths')
+    fancy_raster.by_row(ax, spikes, drives)
 
     # construct weak drive matching one path all but time 2, at which it matches path from other tree
+    nearly_matching_path = []
+    orthogonal_path = ntwk_base.node_1_path_tree[0]
+    nearly_matching_path[:] = path_00[:]
+    nearly_matching_path[PATH_MISMATCH_TIME] = orthogonal_path[PATH_MISMATCH_TIME]
+
+    drives = np.zeros((TRIAL_LENGTH * N_REPEATS, n_nodes), dtype=float)
+
+    for repeat in range(N_REPEATS):
+        t_start = repeat * TRIAL_LENGTH
+        for t_ctr, node in enumerate(nearly_matching_path):
+            drives[t_start + t_ctr, node] = WEAK_DRIVE_AMPLITUDE
+
+    # present weak drive path-nearly-matched to network
+    ntwk = deepcopy(ntwk_base)
+    ntwk.store_voltages = True
+
+    for drive in drives:
+        ntwk.step(drive)
+
+    spikes = np.array(ntwk.rs_history)
+
+    # show network response
+    ax = axs[1]
+    ax.set_title('Response to weak drive nearly matching anatomical path')
+    fancy_raster.by_row(ax, spikes, drives)
 
     # construct weak drive matching one path before time 2, and path from other tree after time 2
+    half_matching_path = []
+    half_matching_path[:] = path_00[:]
+    half_matching_path[PATH_MISMATCH_TIME:] = orthogonal_path[PATH_MISMATCH_TIME:]
+
+    drives = np.zeros((TRIAL_LENGTH * N_REPEATS, n_nodes), dtype=float)
+
+    for repeat in range(N_REPEATS):
+        t_start = repeat * TRIAL_LENGTH
+        for t_ctr, node in enumerate(nearly_matching_path):
+            drives[t_start + t_ctr, node] = WEAK_DRIVE_AMPLITUDE
+
+    # present weak drive path-half-matched to network
+    ntwk = deepcopy(ntwk_base)
+    ntwk.store_voltages = True
+
+    for drive in drives:
+        ntwk.step(drive)
+
+    spikes = np.array(ntwk.rs_history)
+
+    # show network response
+    ax = axs[2]
+    ax.set_title('Response to weak drive half matching anatomical path')
+    fancy_raster.by_row(ax, spikes, drives)
 
     # construct strong drive identical to previous weak drive except in strength
+    drives *= STRONG_DRIVE_AMPLITUDE / WEAK_DRIVE_AMPLITUDE
 
-    # present path-matched weak drives to network
+    # present strong drive half-matched to network
+    ntwk = deepcopy(ntwk_base)
+    ntwk.store_voltages = True
 
-    # present path-nearly-matched weak drive to network
+    for drive in drives:
+        ntwk.step(drive)
 
-    # present path-half-matched weak drive to network
+    spikes = np.array(ntwk.rs_history)
 
-    # present path-half-matched strong drive to network
+    # show network response
+    ax = axs[3]
+    ax.set_title('Response to strong drive half matching anatomical path')
+    fancy_raster.by_row(ax, spikes, drives)
