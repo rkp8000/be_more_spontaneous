@@ -88,7 +88,8 @@ def by_row_circles(ax, spikes, drives, spike_marker_size=10, drive_marker_base_s
 
     ax.scatter(spike_times, spike_rows, c='k', s=spike_marker_size, zorder=1)
 
-    drive_times, drive_rows = drives.nonzero()
-    drive_strengths = drive_marker_base_size * np.array([drives[t, r] for t, r in zip(drive_times, drive_rows)])
+    if drives is not None:
+        drive_times, drive_rows = drives.nonzero()
+        drive_strengths = drive_marker_base_size * np.array([drives[t, r] for t, r in zip(drive_times, drive_rows)])
 
-    ax.scatter(drive_times, drive_rows, s=drive_strengths, lw=2, facecolors='none', edgecolors='r', zorder=-1)
+        ax.scatter(drive_times, drive_rows, s=drive_strengths, lw=2, facecolors='none', edgecolors='r', zorder=-1)
