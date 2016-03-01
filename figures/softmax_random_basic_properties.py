@@ -144,7 +144,9 @@ def make_and_save_network(config):
         return
 
     # make a network with this weight matrix
-    ntwk = network.RecurrentSoftMaxModel(weights, GAIN)
+    ntwk = network.RecurrentSoftMaxLingeringModel(
+        weights, GAIN, lingering_input_value=0, lingering_timescale=np.inf
+    )
 
     # bind two root nodes and path trees to network
     ntwk.node_0 = node_0
