@@ -431,14 +431,18 @@ class RecurrentSoftMaxLingeringModel(RecurrentSoftMaxModel):
     :param weights: weight matrix
     :param gain: gain going into softmax function
     :param lingering_input_value: lingering input value
+    :param lingering_timescale: timescale of lingering input
     """
     
-    def __init__(self, weights, gain, lingering_input_value, shape=None):
+    def __init__(self, weights, gain, lingering_input_value, lingering_timescale, shape=None):
         
         super(self.__class__, self).__init__(weights, gain, shape)
         
         self.lingering_input_value = lingering_input_value
+        self.lingering_timescale = lingering_timescale
+
         self.lingering_inputs = np.zeros((self.n_nodes,), dtype=float)
+        self.lingering_inputs_counter = np.zeros((self.n_nodes,), dtype=float)
         
     def step(self, drive=0):
         """
@@ -452,6 +456,11 @@ class RecurrentSoftMaxLingeringModel(RecurrentSoftMaxModel):
             rs = self.rs
 
         inputs = self.w.dot(rs) + self.lingering_inputs + drive
+
+        # decrease lingering counter and set lingering inputs to zero if necessary
+        self.lingering_inputs_counter[self.lingering_inputs_counter > 0] -= 1
+        self.lingering_inputs[self.lingering_inputs_counter == 0] = 0
+
         self.vs = self.gain * inputs
         self.rs = self.rate_from_voltage(self.vs)
         
@@ -468,6 +477,7 @@ class RecurrentSoftMaxLingeringModel(RecurrentSoftMaxModel):
         rs[active_idx] = 1.
         
         self.lingering_inputs[active_idx] = self.lingering_input_value
+        self.lingering_inputs_counter[active_idx] = self.lingering_timescale
         
         return rs
 
