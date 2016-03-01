@@ -4,6 +4,7 @@ governed by the softmax rule.
 """
 from __future__ import division, print_function
 from copy import deepcopy
+from itertools import chain
 import matplotlib.pyplot as plt
 import numpy as np
 import sys
@@ -36,6 +37,7 @@ def make_and_save_network(config):
     GAIN = config['GAIN']
 
     PATH_LENGTH = config['PATH_LENGTH']
+    TRIAL_LENGTH = config['TRIAL_LENGTH']
     MAX_ATTEMPTS = config['MAX_ATTEMPTS']
 
     SAVE_FILE_NAME = config['SAVE_FILE_NAME']
@@ -55,8 +57,12 @@ def make_and_save_network(config):
         # calculate overlap of all node pairs' path trees
         path_tree_overlaps, path_trees = metrics.path_tree_overlaps(nodes, weights, PATH_LENGTH)
 
-        # set all elements of path_tree_overlaps to -1 if one node in pair as no paths in tree
-        path_tree_sizes = np.array([len(path_tree) for path_tree in path_trees])
+        # set all elements of path_tree_overlaps to -1 if one node in pair has no paths with PATH_LENGTH transitions
+        path_sets_max_length = [
+            [path for path in path_tree if len(path) - 1 == PATH_LENGTH]
+            for path_tree in path_trees
+        ]
+        path_tree_sizes = np.array([len(path_set) for path_set in path_sets_max_length])
         path_tree_overlaps[path_tree_sizes == 0, :] = -1
         path_tree_overlaps[:, path_tree_sizes == 0] = -1
 
@@ -100,8 +106,12 @@ def make_and_save_network(config):
         # choose final starting nodes for all subsequent examples
         node_0, node_1 = candidate_node_pairs[candidate_probabilities.argmax()]
         # get their path trees
-        node_0_path_tree = metrics.paths_of_length(weights, PATH_LENGTH, start=node_0)
-        node_1_path_tree = metrics.paths_of_length(weights, PATH_LENGTH, start=node_1)
+        node_0_path_tree = list(chain(*[
+            metrics.paths_of_length(weights, length, start=node_0) for length in range(1, TRIAL_LENGTH + 1)
+        ]))
+        node_1_path_tree = list(chain(*[
+            metrics.paths_of_length(weights, length, start=node_1) for length in range(1, TRIAL_LENGTH + 1)
+        ]))
 
         # swap if necessary so that node_0_path_tree has at least 2 paths
         if len(node_0_path_tree) == 1:
@@ -123,9 +133,6 @@ def make_and_save_network(config):
         # relabel weight matrix rows and columns
         weights = weights[reordering, :]
         weights = weights[:, reordering]
-
-        node_0_path_tree = metrics.paths_of_length(weights, PATH_LENGTH, start=node_0)
-        node_1_path_tree = metrics.paths_of_length(weights, PATH_LENGTH, start=node_1)
 
         print('reordering:')
         print(reordering)
@@ -163,14 +170,14 @@ def spontaneous(config):
 
     SEED = config['SEED']
 
+    LOAD_FILE_NAME = config['LOAD_FILE_NAME']
+
     RUN_LENGTH_NO_DRIVE = config['RUN_LENGTH_NO_DRIVE']
+    DRIVE_AMPLITUDE = config['DRIVE_AMPLITUDE']
     TRIAL_LENGTH = config['TRIAL_LENGTH']
     N_REPEATS = config['N_REPEATS']
 
-    FIG_SIZE_NO_DRIVE = config['FIG_SIZE_NO_DRIVE']
-    FIG_SIZE_WITH_DRIVE = config['FIG_SIZE_WITH_DRIVE']
-
-    LOAD_FILE_NAME = config['LOAD_FILE_NAME']
+    FIG_SIZE = config['FIG_SIZE']
 
     np.random.seed(SEED)
 
@@ -185,9 +192,24 @@ def spontaneous(config):
 
     spikes = np.array(ntwk.rs_history)
 
-    fig, ax = plt.subplots(1, 1, figsize=FIG_SIZE_NO_DRIVE, tight_layout=True)
-    ax.set_title('Free-running spontaneous activity')
-    fancy_raster.by_row(ax, spikes, drives=None)
+    fig, axs = plt.subplots(3, 1, figsize=FIG_SIZE, tight_layout=True)
+
+    axs[0].set_title('Free-running spontaneous activity')
+    rand_perm = np.random.permutation(range(spikes.shape[1]))
+    fancy_raster.by_row_circles(axs[0], spikes[:, rand_perm], drives=None)
+
+    axs[0].set_xlim(-1, RUN_LENGTH_NO_DRIVE)
+    axs[0].set_ylim(-1, ntwk.w.shape[0])
+    axs[0].set_xlabel('time step')
+    axs[0].set_ylabel('ensemble')
+
+    axs[1].set_title('Free-running spontaneous activity (partially resorted)')
+    fancy_raster.by_row_circles(axs[1], spikes, drives=None)
+
+    axs[1].set_xlim(-1, RUN_LENGTH_NO_DRIVE)
+    axs[1].set_ylim(-1, ntwk.w.shape[0])
+    axs[1].set_xlabel('time step')
+    axs[1].set_ylabel('ensemble')
 
     # drive the network from two different initial conditions several times
     ntwk = deepcopy(ntwk_base)
@@ -197,19 +219,21 @@ def spontaneous(config):
     drives = np.zeros((2 * TRIAL_LENGTH * N_REPEATS, ntwk.w.shape[0]), dtype=float)
     node_0_drive_times = np.arange(0, TRIAL_LENGTH * N_REPEATS, TRIAL_LENGTH)
     node_1_drive_times = TRIAL_LENGTH * N_REPEATS + node_0_drive_times
-    drives[node_0_drive_times, ntwk.node_0] = 1
-    drives[node_1_drive_times, ntwk.node_1] = 1
+    drives[node_0_drive_times, ntwk.node_0] = DRIVE_AMPLITUDE
+    drives[node_1_drive_times, ntwk.node_1] = DRIVE_AMPLITUDE
 
     for drive in drives:
-        ntwk.step(10 * drive)
+        ntwk.step(drive)
 
     spikes = np.array(ntwk.rs_history)
 
-    fig, ax = plt.subplots(1, 1, figsize=FIG_SIZE_WITH_DRIVE, tight_layout=True)
-    ax.set_title('Variability in spontaneous activity from fixed initial condition')
-    fancy_raster.by_row(ax, spikes, drives)
+    axs[2].set_title('Variability in spontaneous activity from forced initial condition')
+    fancy_raster.by_row_circles(axs[2], spikes, drives)
 
-    # show how changes in gain affect randomness???
+    axs[2].set_xlim(-1, len(drives))
+    axs[2].set_ylim(-1, 20)
+    axs[2].set_xlabel('time step')
+    axs[2].set_ylabel('ensemble')
 
 
 def weakly_driven(config):
@@ -242,7 +266,7 @@ def weakly_driven(config):
     
     # pick two paths from same tree
     path_00 = ntwk_base.node_0_path_tree[0]
-    path_01 = ntwk_base.node_1_path_tree[1]
+    path_01 = ntwk_base.node_0_path_tree[1]
 
     # construct weak drives matching two paths from node 0's path tree
     drives = np.zeros((2 * TRIAL_LENGTH * N_REPEATS, n_nodes), dtype=float)
@@ -273,7 +297,12 @@ def weakly_driven(config):
     # show network response
     ax = axs[0]
     ax.set_title('Response to weak drive matching anatomical paths')
-    fancy_raster.by_row(ax, spikes, drives)
+    fancy_raster.by_row_circles(ax, spikes, drives)
+
+    ax.set_xlim(-1, len(drives))
+    ax.set_ylim(-1, 20)
+    ax.set_xlabel('time step')
+    ax.set_ylabel('ensemble')
 
     # construct weak drive matching one path all but time 2, at which it matches path from other tree
     nearly_matching_path = []
@@ -285,8 +314,9 @@ def weakly_driven(config):
 
     for repeat in range(N_REPEATS):
         t_start = repeat * TRIAL_LENGTH
-        for t_ctr, node in enumerate(nearly_matching_path):
-            drives[t_start + t_ctr, node] = WEAK_DRIVE_AMPLITUDE
+        drives[t_start, nearly_matching_path[0]] = STRONG_DRIVE_AMPLITUDE
+        for t_ctr, node in enumerate(nearly_matching_path[1:]):
+            drives[t_start + t_ctr + 1, node] = WEAK_DRIVE_AMPLITUDE
 
     # present weak drive path-nearly-matched to network
     ntwk = deepcopy(ntwk_base)
@@ -300,7 +330,12 @@ def weakly_driven(config):
     # show network response
     ax = axs[1]
     ax.set_title('Response to weak drive nearly matching anatomical path')
-    fancy_raster.by_row(ax, spikes, drives)
+    fancy_raster.by_row_circles(ax, spikes, drives)
+
+    ax.set_xlim(-1, len(drives))
+    ax.set_ylim(-1, 20)
+    ax.set_xlabel('time step')
+    ax.set_ylabel('ensemble')
 
     # construct weak drive matching one path before time 2, and path from other tree after time 2
     half_matching_path = []
@@ -311,8 +346,9 @@ def weakly_driven(config):
 
     for repeat in range(N_REPEATS):
         t_start = repeat * TRIAL_LENGTH
-        for t_ctr, node in enumerate(nearly_matching_path):
-            drives[t_start + t_ctr, node] = WEAK_DRIVE_AMPLITUDE
+        drives[t_start, half_matching_path[0]] = STRONG_DRIVE_AMPLITUDE
+        for t_ctr, node in enumerate(half_matching_path[1:]):
+            drives[t_start + t_ctr + 1, node] = WEAK_DRIVE_AMPLITUDE
 
     # present weak drive path-half-matched to network
     ntwk = deepcopy(ntwk_base)
@@ -326,10 +362,15 @@ def weakly_driven(config):
     # show network response
     ax = axs[2]
     ax.set_title('Response to weak drive half matching anatomical path')
-    fancy_raster.by_row(ax, spikes, drives)
+    fancy_raster.by_row_circles(ax, spikes, drives)
+
+    ax.set_xlim(-1, len(drives))
+    ax.set_ylim(-1, 20)
+    ax.set_xlabel('time step')
+    ax.set_ylabel('ensemble')
 
     # construct strong drive identical to previous weak drive except in strength
-    drives *= STRONG_DRIVE_AMPLITUDE / WEAK_DRIVE_AMPLITUDE
+    drives[drives > 0] = STRONG_DRIVE_AMPLITUDE
 
     # present strong drive half-matched to network
     ntwk = deepcopy(ntwk_base)
@@ -343,4 +384,9 @@ def weakly_driven(config):
     # show network response
     ax = axs[3]
     ax.set_title('Response to strong drive half matching anatomical path')
-    fancy_raster.by_row(ax, spikes, drives)
+    fancy_raster.by_row_circles(ax, spikes, drives)
+
+    ax.set_xlim(-1, len(drives))
+    ax.set_ylim(-1, 20)
+    ax.set_xlabel('time step')
+    ax.set_ylabel('ensemble')
