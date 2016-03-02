@@ -8,6 +8,8 @@ from itertools import chain
 import matplotlib.pyplot as plt
 import numpy as np
 import sys
+import warnings
+warnings.filterwarnings("ignore")
 
 sys.path.append('/Users/rkp/Dropbox/Repositories/be_more_spontaneous')
 
@@ -304,7 +306,7 @@ def weakly_driven(config):
     ax.set_xlim(-1, len(drives))
     ax.set_ylim(-1, 20)
     ax.set_xlabel('time step')
-    ax.set_ylabel('ensemble')
+    ax.set_ylabel('active ensemble')
 
     # construct weak drive matching one path all but time 2, at which it matches path from other tree
     nearly_matching_path = []
@@ -337,7 +339,7 @@ def weakly_driven(config):
     ax.set_xlim(-1, len(drives))
     ax.set_ylim(-1, 20)
     ax.set_xlabel('time step')
-    ax.set_ylabel('ensemble')
+    ax.set_ylabel('active ensemble')
 
     # construct weak drive matching one path before time 2, and path from other tree after time 2
     half_matching_path = []
@@ -369,7 +371,7 @@ def weakly_driven(config):
     ax.set_xlim(-1, len(drives))
     ax.set_ylim(-1, 20)
     ax.set_xlabel('time step')
-    ax.set_ylabel('ensemble')
+    ax.set_ylabel('active ensemble')
 
     # construct strong drive identical to previous weak drive except in strength
     drives[drives > 0] = STRONG_DRIVE_AMPLITUDE
@@ -391,4 +393,4 @@ def weakly_driven(config):
     ax.set_xlim(-1, len(drives))
     ax.set_ylim(-1, 20)
     ax.set_xlabel('time step')
-    ax.set_ylabel('ensemble')
+    ax.set_ylabel('active ensemble')
