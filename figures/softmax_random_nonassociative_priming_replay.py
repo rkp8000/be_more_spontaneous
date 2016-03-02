@@ -7,6 +7,8 @@ from copy import deepcopy
 import matplotlib.pyplot as plt
 import numpy as np
 import sys
+import warnings
+warnings.filterwarnings("ignore")
 
 sys.path.append('/Users/rkp/Dropbox/Repositories/be_more_spontaneous')
 
