@@ -355,10 +355,11 @@ class RecurrentSoftMaxModel(object):
     :param gain: gain going into softmax function
     """
     
-    def __init__(self, weights, gain, shape=None):
+    def __init__(self, weights, gain, refractory_strength, shape=None):
         self.w = weights
         self.n_nodes = weights.shape[0]
         self.gain = gain
+        self.refractory_strength = refractory_strength
         self.shape = shape
 
         self.vs = None
@@ -367,6 +368,8 @@ class RecurrentSoftMaxModel(object):
         self.vs_history = []
         
         self.rs_history = []  # since firing rate is no longer a deterministic function of voltages
+
+        self.refractory_inputs = np.zeros((weights.shape[0],), dtype=float)
         
     def record_data(self):
         if self.store_voltages:
@@ -384,7 +387,7 @@ class RecurrentSoftMaxModel(object):
         else:
             rs = self.rs
 
-        inputs = self.w.dot(rs) + drive
+        inputs = self.w.dot(rs) + drive + self.refractory_inputs
         self.vs = self.gain * inputs
         self.rs = self.rate_from_voltage(self.vs)
         
@@ -407,7 +410,10 @@ class RecurrentSoftMaxModel(object):
         """
         
         rs = np.zeros((self.n_nodes,), dtype=float)
-        rs[self.get_active_idx(vs)] = 1.
+        active_idx = self.get_active_idx(vs)
+        rs[active_idx] = 1.
+        self.refractory_inputs = np.zeros((self.w.shape[0],), dtype=float)
+        self.refractory_inputs[active_idx] = self.refractory_strength
         
         return rs
     
@@ -434,9 +440,9 @@ class RecurrentSoftMaxLingeringModel(RecurrentSoftMaxModel):
     :param lingering_timescale: timescale of lingering input
     """
     
-    def __init__(self, weights, gain, lingering_input_value, lingering_timescale, shape=None):
+    def __init__(self, weights, gain, refractory_strength, lingering_input_value, lingering_timescale, shape=None):
         
-        super(self.__class__, self).__init__(weights, gain, shape)
+        super(self.__class__, self).__init__(weights, gain, refractory_strength, shape)
         
         self.lingering_input_value = lingering_input_value
         self.lingering_timescale = lingering_timescale
@@ -455,7 +461,7 @@ class RecurrentSoftMaxLingeringModel(RecurrentSoftMaxModel):
         else:
             rs = self.rs
 
-        inputs = self.w.dot(rs) + self.lingering_inputs + drive
+        inputs = self.w.dot(rs) + self.lingering_inputs + drive + self.refractory_inputs
 
         # decrease lingering counter and set lingering inputs to zero if necessary
         self.lingering_inputs_counter[self.lingering_inputs_counter > 0] -= 1
@@ -475,6 +481,9 @@ class RecurrentSoftMaxLingeringModel(RecurrentSoftMaxModel):
         
         rs = np.zeros((self.n_nodes,), dtype=float)
         rs[active_idx] = 1.
+
+        self.refractory_inputs = np.zeros((self.w.shape[0],), dtype=float)
+        self.refractory_inputs[active_idx] = self.refractory_strength
         
         self.lingering_inputs[active_idx] = self.lingering_input_value
         self.lingering_inputs_counter[active_idx] = self.lingering_timescale
