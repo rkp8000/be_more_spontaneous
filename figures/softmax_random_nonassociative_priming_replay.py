@@ -251,15 +251,17 @@ def novel_pattern_replay(CONFIG):
     LINGERING_INPUT_TIMESCALE = CONFIG['LINGERING_INPUT_TIMESCALE']
 
     STRONG_DRIVE_AMPLITUDE = CONFIG['STRONG_DRIVE_AMPLITUDE']
+    WEAK_DRIVE_AMPLITUDE = CONFIG['WEAK_DRIVE_AMPLITUDE']
 
     TRIAL_LENGTH_TRIGGERED_REPLAY = CONFIG['TRIAL_LENGTH_TRIGGERED_REPLAY']
     RUN_LENGTH = CONFIG['RUN_LENGTH']
 
-    FIG_SIZE = CONFIG['FIG_SIZE']
+    FIG_SIZE_0 = CONFIG['FIG_SIZE_0']
+    FIG_SIZE_1 = CONFIG['FIG_SIZE_1']
 
     np.random.seed(SEED)
 
-    fig = plt.figure(figsize=FIG_SIZE, tight_layout=True)
+    fig = plt.figure(figsize=FIG_SIZE_0, tight_layout=True)
     axs = []
     for row_ctr in range(3):
         axs.append([fig.add_subplot(4, 3, 3*row_ctr + col_ctr) for col_ctr in range(1, 4)])
@@ -373,4 +375,46 @@ def novel_pattern_replay(CONFIG):
     axs[3].set_xlabel('time step')
     axs[3].set_ylabel('active ensemble')
 
-    # now demonstrate how pattern-matching computation changes
+    # now demonstrate how pattern-matching computation changes with respect to short-term memory
+    fig, axs = plt.subplots(1, 2, figsize=FIG_SIZE_1, tight_layout=True)
+
+    path = list(ntwk_base.node_0_path_tree[1][:])
+    path[0] = 22
+    path[2] = 17
+    path[3] = ntwk_base.node_1_path_tree[0][3]
+
+    drives_new = np.zeros((len(path), ntwk_base.w.shape[0]), dtype=float)
+    drives_new[0, path[0]] = STRONG_DRIVE_AMPLITUDE
+    for ctr, node in enumerate(path[1:]):
+        drives_new[ctr + 1, node] = WEAK_DRIVE_AMPLITUDE
+
+    # drive a network with just the new drive to see how it completes the pattern
+    ntwk = deepcopy(ntwk_base)
+    ntwk.store_voltages = True
+    for drive in drives_new:
+        ntwk.step(drive)
+
+    spikes = np.array(ntwk.rs_history)
+
+    fancy_raster.by_row_circles(axs[0], spikes, drives_new)
+
+    axs[0].set_xlim(-1, 8)
+    axs[0].set_ylim(-1, ntwk_base.w.shape[0])
+    axs[0].set_xlabel('time step')
+    axs[0].set_ylabel('active ensemble')
+
+    drives = np.concatenate([drives[:4, :], drives_new])
+
+    ntwk = deepcopy(ntwk_base)
+    ntwk.store_voltages = True
+    for drive in drives:
+        ntwk.step(drive)
+
+    spikes = np.array(ntwk.rs_history)
+
+    fancy_raster.by_row_circles(axs[1], spikes, drives)
+
+    axs[1].set_xlim(-1, 8)
+    axs[1].set_ylim(-1, ntwk_base.w.shape[0])
+    axs[1].set_xlabel('time step')
+    axs[1].set_ylabel('active ensemble')
