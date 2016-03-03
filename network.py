@@ -440,12 +440,12 @@ class RecurrentSoftMaxLingeringModel(RecurrentSoftMaxModel):
     :param lingering_timescale: timescale of lingering input
     """
     
-    def __init__(self, weights, gain, refractory_strength, lingering_input_value, lingering_timescale, shape=None):
+    def __init__(self, weights, gain, refractory_strength, lingering_input_value, lingering_input_timescale, shape=None):
         
         super(self.__class__, self).__init__(weights, gain, refractory_strength, shape)
         
         self.lingering_input_value = lingering_input_value
-        self.lingering_timescale = lingering_timescale
+        self.lingering_input_timescale = lingering_input_timescale
 
         self.lingering_inputs = np.zeros((self.n_nodes,), dtype=float)
         self.lingering_inputs_counter = np.zeros((self.n_nodes,), dtype=float)
@@ -486,7 +486,7 @@ class RecurrentSoftMaxLingeringModel(RecurrentSoftMaxModel):
         self.refractory_inputs[active_idx] = self.refractory_strength
         
         self.lingering_inputs[active_idx] = self.lingering_input_value
-        self.lingering_inputs_counter[active_idx] = self.lingering_timescale
+        self.lingering_inputs_counter[active_idx] = self.lingering_input_timescale
         
         return rs
 
@@ -508,12 +508,12 @@ class RecurrentSoftMaxLingeringSTDPModel(RecurrentSoftMaxModel):
     :param shape: shape of network if it is layed out on a grid
     """
 
-    def __init__(self, weights, gain, lingering_input_value, lingering_timescale, w_max, alpha, shape=None):
+    def __init__(self, weights, gain, lingering_input_value, lingering_input_timescale, w_max, alpha, shape=None):
 
         super(self.__class__, self).__init__(weights, gain, shape)
 
         self.lingering_input_value = lingering_input_value
-        self.lingering_timescale = lingering_timescale
+        self.lingering_timescale = lingering_input_timescale
         self.w_max = w_max
         self.alpha = alpha
         self.lingering_inputs = np.zeros((self.n_nodes,), dtype=float)
@@ -564,6 +564,6 @@ class RecurrentSoftMaxLingeringSTDPModel(RecurrentSoftMaxModel):
         rs[active_idx] = 1.
 
         self.lingering_inputs[active_idx] = self.lingering_input_value
-        self.lingering_inputs_counter[active_idx] = self.lingering_timescale
+        self.lingering_inputs_counter[active_idx] = self.lingering_input_timescale
 
         return rs
