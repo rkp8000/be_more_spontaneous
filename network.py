@@ -491,7 +491,7 @@ class RecurrentSoftMaxLingeringModel(RecurrentSoftMaxModel):
         return rs
 
 
-class RecurrentSoftMaxLingeringSTDPModel(RecurrentSoftMaxModel):
+class RecurrentSoftMaxLingeringSTDPModelBasic(RecurrentSoftMaxModel):
     """
     Network similar to recurrent soft max lingering model, except that lingering has finite time scale
     and the network has STDP-like synaptic plasticity.
