@@ -61,8 +61,9 @@ def basic_replay(CONFIG):
 
     # drive network for first trial: path_00
     drives = np.zeros((TRIAL_LENGTH_TRIGGERED_REPLAY, ntwk_base.w.shape[1]), dtype=float)
-    for t_ctr, node in enumerate(path_00):
-        drives[t_ctr, node] = STRONG_DRIVE_AMPLITUDE
+    drives[0, path_00[0]] = STRONG_DRIVE_AMPLITUDE
+    for t_ctr, node in enumerate(path_00[1:]):
+        drives[t_ctr + 1, node] = WEAK_DRIVE_AMPLITUDE
     drives[len(path_00), path_00[0]] = STRONG_DRIVE_AMPLITUDE
 
     ntwk = deepcopy(ntwk_base)
@@ -80,11 +81,13 @@ def basic_replay(CONFIG):
     axs[0].set_ylim(-1, 20)
     axs[0].set_xlabel('time step')
     axs[0].set_ylabel('active ensemble')
+    axs[0].set_title('Aligning external drive with \n strongly connected paths')
 
     # drive network for first trial: path_10
     drives = np.zeros((TRIAL_LENGTH_TRIGGERED_REPLAY, ntwk_base.w.shape[1]), dtype=float)
-    for t_ctr, node in enumerate(path_10):
-        drives[t_ctr, node] = STRONG_DRIVE_AMPLITUDE
+    drives[0, path_10[0]] = STRONG_DRIVE_AMPLITUDE
+    for t_ctr, node in enumerate(path_10[1:]):
+        drives[t_ctr + 1, node] = WEAK_DRIVE_AMPLITUDE
     drives[len(path_10), path_10[0]] = STRONG_DRIVE_AMPLITUDE
 
     ntwk = deepcopy(ntwk_base)
@@ -102,6 +105,7 @@ def basic_replay(CONFIG):
     axs[1].set_ylim(-1, 20)
     axs[1].set_xlabel('time step')
     axs[1].set_ylabel('active ensemble')
+    axs[1].set_title('Aligning external drive with \n strongly connected paths')
 
     # drive network for third trial: all path_00 except for element 2
     path = list(path_00[:])
@@ -127,6 +131,7 @@ def basic_replay(CONFIG):
     axs[2].set_ylim(-1, 20)
     axs[2].set_xlabel('time step')
     axs[2].set_ylabel('active ensemble')
+    axs[2].set_title('Aligning external drive with \n nonexisting path')
 
     # drive network for fourth trial: all path_10 except for element 2
     path = list(path_10[:])
@@ -152,6 +157,7 @@ def basic_replay(CONFIG):
     axs[3].set_ylim(-1, 20)
     axs[3].set_xlabel('time step')
     axs[3].set_ylabel('active ensemble')
+    axs[3].set_title('Aligning external drive with \n nonexisting path')
 
     # play sequence and then let network run spontaneously for a while
     drives = np.zeros((RUN_LENGTH, ntwk_base.w.shape[1]), dtype=float)
@@ -173,7 +179,7 @@ def basic_replay(CONFIG):
     axs[4].set_ylim(-1, ntwk_base.w.shape[1])
     axs[4].set_xlabel('time step')
     axs[4].set_ylabel('active ensemble')
-    axs[4].set_title('high gain')
+    axs[4].set_title('Letting network run freely after driving strongly connected path (high gain)')
 
     # play sequence and then let network run spontaneously for a while, now with lower gain
     drives = np.zeros((RUN_LENGTH, ntwk_base.w.shape[1]), dtype=float)
@@ -195,7 +201,7 @@ def basic_replay(CONFIG):
     axs[5].set_ylim(-1, ntwk_base.w.shape[1])
     axs[5].set_xlabel('time step')
     axs[5].set_ylabel('active ensemble')
-    axs[5].set_title('low gain')
+    axs[5].set_title('Letting network run freely after driving strongly connected path (low gain)')
 
     # let network run spontaneously for a while with no initial drive
     ntwk = deepcopy(ntwk_base)
@@ -213,7 +219,7 @@ def basic_replay(CONFIG):
     axs[6].set_ylim(-1, ntwk_base.w.shape[1])
     axs[6].set_xlabel('time step')
     axs[6].set_ylabel('active ensemble')
-    axs[6].set_title('high gain')
+    axs[6].set_title('Letting network run freely with no drive (high gain)')
 
     # let network run spontaneously for a while with no initial drive, now with lower gain
     ntwk = deepcopy(ntwk_base)
@@ -231,7 +237,7 @@ def basic_replay(CONFIG):
     axs[7].set_ylim(-1, ntwk_base.w.shape[1])
     axs[7].set_xlabel('time step')
     axs[7].set_ylabel('active ensemble')
-    axs[7].set_title('low gain')
+    axs[7].set_title('Letting network run freely with no drive (low gain)')
 
 
 def novel_pattern_replay(CONFIG):
@@ -246,6 +252,7 @@ def novel_pattern_replay(CONFIG):
     W_WEAK = CONFIG['W_WEAK']
 
     GAIN = CONFIG['GAIN']
+    REFRACTORY_STRENGTH = CONFIG['REFRACTORY_STRENGTH']
 
     LINGERING_INPUT_VALUE = CONFIG['LINGERING_INPUT_VALUE']
     LINGERING_INPUT_TIMESCALE = CONFIG['LINGERING_INPUT_TIMESCALE']
@@ -279,7 +286,7 @@ def novel_pattern_replay(CONFIG):
         drives[ctr, node] = STRONG_DRIVE_AMPLITUDE
     drives[len(path), path[0]] = STRONG_DRIVE_AMPLITUDE
 
-    for ax in axs[0]:
+    for ctr, ax in enumerate(axs[0]):
         ntwk = deepcopy(ntwk_old)
         ntwk.store_voltages = True
 
@@ -294,6 +301,7 @@ def novel_pattern_replay(CONFIG):
         ax.set_ylim(-1, 20)
         ax.set_xlabel('time step')
         ax.set_ylabel('active ensemble')
+        ax.set_title('Strongly driving nonexisting path (trial {})'.format(ctr + 1))
 
     w = ntwk_old.w.copy()
 
@@ -302,34 +310,12 @@ def novel_pattern_replay(CONFIG):
 
     # make new base network
     ntwk_base = network.RecurrentSoftMaxLingeringModel(
-        w, GAIN, LINGERING_INPUT_VALUE, LINGERING_INPUT_TIMESCALE
+        w, GAIN, REFRACTORY_STRENGTH, LINGERING_INPUT_VALUE, LINGERING_INPUT_TIMESCALE
     )
     ntwk_base.node_0 = ntwk_old.node_0
     ntwk_base.node_0 = ntwk_old.node_1
     ntwk_base.node_0_path_tree = ntwk_old.node_0_path_tree
     ntwk_base.node_1_path_tree = ntwk_old.node_1_path_tree
-
-    # demonstrate how weak connections do not substantially affect path probabilities
-    path = list(ntwk_base.node_0_path_tree[0][:])
-    path[2:] = ntwk_base.node_1_path_tree[0][2:]
-    drives = np.zeros((TRIAL_LENGTH_TRIGGERED_REPLAY, ntwk_old.w.shape[0]), dtype=float)
-    drives[0, path[0]] = STRONG_DRIVE_AMPLITUDE
-
-    for ax in axs[1]:
-        ntwk = deepcopy(ntwk_base)
-        ntwk.store_voltages = True
-
-        for drive in drives:
-            ntwk.step(drive)
-
-        spikes = np.array(ntwk.rs_history)
-
-        fancy_raster.by_row_circles(ax, spikes, drives)
-
-        ax.set_xlim(-1, len(drives))
-        ax.set_ylim(-1, 20)
-        ax.set_xlabel('time step')
-        ax.set_ylabel('active ensemble')
 
     # demonstrate how weak connections allow linking of paths into short term memory
     path = list(ntwk_base.node_0_path_tree[0][:])
@@ -339,7 +325,7 @@ def novel_pattern_replay(CONFIG):
         drives[ctr, node] = STRONG_DRIVE_AMPLITUDE
     drives[len(path), path[0]] = STRONG_DRIVE_AMPLITUDE
 
-    for ax in axs[2]:
+    for ctr, ax in enumerate(axs[1]):
         ntwk = deepcopy(ntwk_base)
         ntwk.store_voltages = True
 
@@ -354,6 +340,30 @@ def novel_pattern_replay(CONFIG):
         ax.set_ylim(-1, 20)
         ax.set_xlabel('time step')
         ax.set_ylabel('active ensemble')
+        ax.set_title('Activity from forced initial condition after \n driving path with weak connection (trial {})'.format(ctr + 1))
+
+    # demonstrate how weak connections do not substantially affect path probabilities
+    path = list(ntwk_base.node_0_path_tree[0][:])
+    path[2:] = ntwk_base.node_1_path_tree[0][2:]
+    drives = np.zeros((TRIAL_LENGTH_TRIGGERED_REPLAY, ntwk_old.w.shape[0]), dtype=float)
+    drives[0, path[0]] = STRONG_DRIVE_AMPLITUDE
+
+    for ctr, ax in enumerate(axs[2]):
+        ntwk = deepcopy(ntwk_base)
+        ntwk.store_voltages = True
+
+        for drive in drives:
+            ntwk.step(drive)
+
+        spikes = np.array(ntwk.rs_history)
+
+        fancy_raster.by_row_circles(ax, spikes, drives)
+
+        ax.set_xlim(-1, len(drives))
+        ax.set_ylim(-1, 20)
+        ax.set_xlabel('time step')
+        ax.set_ylabel('active ensemble')
+        ax.set_title('Free activity after only forcing \n initial condition (trial {})'.format(ctr + 1))
 
     path = list(ntwk_base.node_0_path_tree[0][:])
     path[2:] = ntwk_base.node_1_path_tree[0][2:]
@@ -374,6 +384,7 @@ def novel_pattern_replay(CONFIG):
     axs[3].set_ylim(-1, 40)
     axs[3].set_xlabel('time step')
     axs[3].set_ylabel('active ensemble')
+    axs[3].set_title('Free activity after driving path with weak connection')
 
     # now demonstrate how pattern-matching computation changes with respect to short-term memory
     fig, axs = plt.subplots(1, 2, figsize=FIG_SIZE_1, tight_layout=True)
@@ -402,6 +413,7 @@ def novel_pattern_replay(CONFIG):
     axs[0].set_ylim(-1, ntwk_base.w.shape[0])
     axs[0].set_xlabel('time step')
     axs[0].set_ylabel('active ensemble')
+    axs[0].set_title('Weakly driving nonexistent path')
 
     drives = np.concatenate([drives[:4, :], drives_new])
 
@@ -418,3 +430,4 @@ def novel_pattern_replay(CONFIG):
     axs[1].set_ylim(-1, ntwk_base.w.shape[0])
     axs[1].set_xlabel('time step')
     axs[1].set_ylabel('active ensemble')
+    axs[1].set_title('Weakly driving nonexistent path after \n strongly driving path with weak connection')

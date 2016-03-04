@@ -37,6 +37,7 @@ def make_and_save_network(config):
     W_STRONG = config['W_STRONG']
 
     GAIN = config['GAIN']
+    REFRACTORY_STRENGTH = config['REFRACTORY_STRENGTH']
 
     PATH_LENGTH = config['PATH_LENGTH']
     TRIAL_LENGTH = config['TRIAL_LENGTH']
@@ -147,7 +148,7 @@ def make_and_save_network(config):
 
     # make a network with this weight matrix
     ntwk = network.RecurrentSoftMaxLingeringModel(
-        weights, GAIN, lingering_input_value=0, lingering_timescale=np.inf
+        weights, GAIN, REFRACTORY_STRENGTH, lingering_input_value=0, lingering_input_timescale=0,
     )
 
     # bind two root nodes and path trees to network
