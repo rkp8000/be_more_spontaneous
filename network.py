@@ -508,9 +508,9 @@ class RecurrentSoftMaxLingeringSTDPModelBasic(RecurrentSoftMaxModel):
     :param shape: shape of network if it is layed out on a grid
     """
 
-    def __init__(self, weights, gain, lingering_input_value, lingering_input_timescale, w_max, alpha, shape=None):
+    def __init__(self, weights, gain, refractory_strength, lingering_input_value, lingering_input_timescale, w_max, alpha, shape=None):
 
-        super(self.__class__, self).__init__(weights, gain, shape)
+        super(self.__class__, self).__init__(weights, gain, refractory_strength, shape)
 
         self.lingering_input_value = lingering_input_value
         self.lingering_input_timescale = lingering_input_timescale
