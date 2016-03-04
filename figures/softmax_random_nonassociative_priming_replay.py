@@ -1,6 +1,6 @@
 """
-Demonstrate some of the basic properties of a random network with dynamics
-governed by the softmax rule.
+Demonstrate how including nonassociative priming in a softmax network can yield
+useful computations including replay.
 """
 from __future__ import division, print_function
 from copy import deepcopy
