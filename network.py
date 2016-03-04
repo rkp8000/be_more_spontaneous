@@ -513,7 +513,7 @@ class RecurrentSoftMaxLingeringSTDPModelBasic(RecurrentSoftMaxModel):
         super(self.__class__, self).__init__(weights, gain, shape)
 
         self.lingering_input_value = lingering_input_value
-        self.lingering_timescale = lingering_input_timescale
+        self.lingering_input_timescale = lingering_input_timescale
         self.w_max = w_max
         self.alpha = alpha
         self.lingering_inputs = np.zeros((self.n_nodes,), dtype=float)
