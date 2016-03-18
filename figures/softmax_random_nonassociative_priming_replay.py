@@ -6,16 +6,18 @@ from __future__ import division, print_function
 from copy import deepcopy
 import matplotlib.pyplot as plt
 import numpy as np
+from scipy import stats
 import sys
 import warnings
 warnings.filterwarnings("ignore")
 sys.path.append('/Users/rkp/Dropbox/Repositories/be_more_spontaneous')
 
 import fancy_raster
+import metrics
 import network
 
 
-def basic_replay(CONFIG):
+def basic_replay_ex(CONFIG):
     """
     Run a simulation demonstrating the basic capability of a network with nonassociative priming to
     demonstrated replay, both triggered and spontaneous.
@@ -238,6 +240,142 @@ def basic_replay(CONFIG):
     axs[7].set_xlabel('time step')
     axs[7].set_ylabel('active ensemble')
     axs[7].set_title('Letting network run freely with no drive (low gain)')
+
+
+def basic_replay_stats(CONFIG):
+    """
+    Plot some statistics of this network's behavior.
+    """
+
+    SEED = CONFIG['SEED']
+
+    LOAD_FILE_NAME = CONFIG['LOAD_FILE_NAME']
+
+    GAIN_HIGH = CONFIG['GAIN_HIGH']
+    GAIN_LOW = CONFIG['GAIN_LOW']
+
+    LINGERING_INPUT_VALUE = CONFIG['LINGERING_INPUT_VALUE']
+    LINGERING_INPUT_TIMESCALE = CONFIG['LINGERING_INPUT_TIMESCALE']
+
+    STRONG_DRIVE_AMPLITUDE = CONFIG['STRONG_DRIVE_AMPLITUDE']
+
+    T_SPONTANEOUS = CONFIG['T_SPONTANEOUS']
+    SPONTANEOUS_REPEATS = CONFIG['SPONTANEOUS_REPEATS']
+
+    FIG_SIZE = CONFIG['FIG_SIZE']
+
+    np.random.seed(SEED)
+
+    fig, axs = plt.subplots(1, 3, figsize=FIG_SIZE, tight_layout=True)
+
+    ntwk_base = np.load(LOAD_FILE_NAME)[0]
+    n_nodes = ntwk_base.w.shape[0]
+
+    # show that adding in lingering activity increases probability of replay
+    driven_path = ntwk_base.node_0_path_tree[0]
+
+    p_replay_no_lingering = 1
+    for node_prev, node_next in zip(driven_path[:-1], driven_path[1:]):
+        intrinsic = ntwk_base.w[:, node_prev]
+        refractory = np.zeros((n_nodes,), dtype=float)
+        refractory[node_prev] = ntwk_base.refractory_strength
+        inputs = intrinsic + refractory
+        prob = np.exp(ntwk_base.gain * inputs)
+        prob /= prob.sum()
+        p_replay_no_lingering *= prob[node_next]
+
+    lingering_inputs = np.zeros((n_nodes,), dtype=float)
+    lingering_inputs[np.array(driven_path)] = LINGERING_INPUT_VALUE
+
+    p_replay_with_lingering = 1
+    for node_prev, node_next in zip(driven_path[:-1], driven_path[1:]):
+        intrinsic = ntwk_base.w[:, node_prev]
+        refractory = np.zeros((n_nodes,), dtype=float)
+        refractory[node_prev] = ntwk_base.refractory_strength
+        inputs = intrinsic + refractory + lingering_inputs
+        prob = np.exp(ntwk_base.gain * inputs)
+        prob /= prob.sum()
+        p_replay_with_lingering *= prob[node_next]
+
+    axs[0].bar([0, 1], [p_replay_no_lingering, p_replay_with_lingering], align='center')
+    axs[0].set_xticks([0, 1])
+    axs[0].set_xticklabels(['Without \n nonassociative \n priming', 'With \n nonassociative \n priming'])
+    axs[0].set_ylabel('sequence replay probability')
+
+    for ax, gain in zip(axs[1:], [GAIN_LOW, GAIN_HIGH]):
+
+        # show expected number of spontaneous replays with and without nonassociative priming
+        ntwk_no_nap = deepcopy(ntwk_base)
+        ntwk_no_nap.gain = gain
+
+        ntwk_with_nap = deepcopy(ntwk_base)
+        ntwk_with_nap.gain = gain
+        ntwk_with_nap.lingering_input_value = LINGERING_INPUT_VALUE
+        ntwk_with_nap.lingering_input_timescale = LINGERING_INPUT_TIMESCALE
+
+        drives = np.zeros((T_SPONTANEOUS, n_nodes), dtype=float)
+        for t, node in enumerate(driven_path):
+            drives[t, node] = STRONG_DRIVE_AMPLITUDE
+
+        past_occurrences_of_driven_seq_no_nap = []
+        for _ in range(SPONTANEOUS_REPEATS):
+            ntwk = deepcopy(ntwk_no_nap)
+            ntwk.store_voltages = True
+
+            for drive in drives:
+                ntwk.step(drive)
+
+            activation_seq = np.array(ntwk.rs_history).nonzero()[1]
+
+            past_occurrences_of_driven_seq_no_nap.append(
+                metrics.get_number_of_past_occurrences_of_specific_sequence(activation_seq, driven_path)
+            )
+
+        past_occurrences_of_driven_seq_no_nap = np.array(past_occurrences_of_driven_seq_no_nap)
+        past_occurrences_of_driven_seq_no_nap_mean = np.mean(past_occurrences_of_driven_seq_no_nap, axis=0)
+        past_occurrences_of_driven_seq_no_nap_sem = stats.sem(past_occurrences_of_driven_seq_no_nap, axis=0)
+
+        past_occurrences_of_driven_seq_with_nap = []
+        for _ in range(SPONTANEOUS_REPEATS):
+            ntwk = deepcopy(ntwk_with_nap)
+            ntwk.store_voltages = True
+
+            for drive in drives:
+                ntwk.step(drive)
+
+            activation_seq = np.array(ntwk.rs_history).nonzero()[1]
+
+            past_occurrences_of_driven_seq_with_nap.append(
+                metrics.get_number_of_past_occurrences_of_specific_sequence(activation_seq, driven_path)
+            )
+
+        past_occurrences_of_driven_seq_with_nap = np.array(past_occurrences_of_driven_seq_with_nap)
+        past_occurrences_of_driven_seq_with_nap_mean = np.mean(past_occurrences_of_driven_seq_with_nap, axis=0)
+        past_occurrences_of_driven_seq_with_nap_sem = stats.sem(past_occurrences_of_driven_seq_with_nap, axis=0)
+
+        ts = np.arange(T_SPONTANEOUS)
+        ax.plot(ts, past_occurrences_of_driven_seq_no_nap_mean, color='b', lw=2)
+        ax.fill_between(
+            ts,
+            past_occurrences_of_driven_seq_no_nap_mean - past_occurrences_of_driven_seq_no_nap_sem,
+            past_occurrences_of_driven_seq_no_nap_mean + past_occurrences_of_driven_seq_no_nap_sem,
+            color='b',
+            alpha=0.3,
+        )
+
+        ax.plot(ts, past_occurrences_of_driven_seq_with_nap_mean, color='g', lw=2)
+        ax.fill_between(
+            ts,
+            past_occurrences_of_driven_seq_with_nap_mean - past_occurrences_of_driven_seq_with_nap_sem,
+            past_occurrences_of_driven_seq_with_nap_mean + past_occurrences_of_driven_seq_with_nap_sem,
+            color='g',
+            alpha=0.3,
+        )
+
+        ax.set_xlabel('time step')
+        ax.set_ylabel('past occurrences')
+        ax.set_title('gain = {}'.format(gain))
+        ax.legend(['Without nonassociative priming', 'With nonassociative priming'], loc='best')
 
 
 def novel_pattern_replay(CONFIG):
