@@ -177,5 +177,23 @@ class PathDetectionTestCase(unittest.TestCase):
         self.assertEqual(path_trees, path_trees_correct)
 
 
+class SequentialActivityPatternsTestCase(unittest.TestCase):
+
+    def test_get_number_of_past_occurrences_of_most_recent_sequence_works_correctly(self):
+
+        seq = np.array([0, 1, 2, 3, 5, 1, 2, 6, 0, 3, 2, 1, 2, 3, 5, 0, 2, 1, 2, 3])
+
+        self.assertEqual(metrics.get_number_of_past_occurrences_of_most_recent_sequence(seq, 3), 2)
+
+    def test_get_number_of_past_occurrences_works_correctly(self):
+
+        seq = np.array([0, 1, 2, 3, 5, 1, 2, 6, 0, 3, 2, 1, 2, 3, 5, 0, 2, 1, 2, 3])
+        occs_correct = np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 1, 2])
+
+        np.testing.assert_array_equal(
+            metrics.get_number_of_past_occurrences(seq, 3), occs_correct
+        )
+
+
 if __name__ == '__main__':
     unittest.main()

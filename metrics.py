@@ -2,9 +2,11 @@
 Metrics for analyzing networks, etc.
 """
 from __future__ import division, print_function
+from copy import deepcopy
 from itertools import chain
 from more_itertools import unique_everseen
 import numpy as np
+from scipy import stats
 
 
 def paths_of_length(weights, length, start=None):
@@ -204,3 +206,78 @@ def paths_include_loops(paths):
     """
 
     return any([len(set(path)) != len(path) for path in paths])
+
+
+def get_number_of_past_occurrences_of_most_recent_sequence(seq, l):
+    """
+    Calculate how many times the most recent l-length sequence has occurred in the past.
+    :param seq: sequence
+    :param l: length of recent sequence to look for
+    :return: scalar indicating how many times most recent sequence has occurred
+    """
+
+    occs = np.zeros((len(seq) - l,), dtype=bool)
+
+    for t in range(len(seq) - l):
+        if np.all(seq[-l:] == seq[t:t + l]):
+            occs[t] = True
+
+    # don't count last subsequence
+    occs[-1] = False
+
+    return occs.sum()
+
+
+def get_number_of_past_occurrences(seq, l):
+    """
+    For every time point in the sequence, calculate how many times the most recent l-length sequence has occurred
+    in the past.
+    :param seq: integer sequence
+    :param l: length of sequence to look for
+    :return: array of same length as sequence
+    """
+
+    occs = np.zeros(seq.shape, dtype=int)
+
+    for t in range(l + 1, len(seq) + 1):
+
+        occs[t-1] = get_number_of_past_occurrences_of_most_recent_sequence(seq[:t], l)
+
+    return occs
+
+
+def spontaneous_sequence_repeats_stats(ntwk, ls, n_steps, n_repeats):
+    """
+    Estimate the expected number of times the most recent sequence has spontaneously occurred
+    in the past t time steps for t < n_steps.
+
+    :param ntwk: binary network
+    :param ls: lengths of sequences to investigate
+    :param n_steps: how many steps to run network for to look for repeats
+    :param n_repeats: how many times to repeat the spontaneous run to make the estimate
+    :return: means, stds, and sems
+    """
+    ntwk_base = ntwk
+    n_nodes = ntwk_base.w.shape[0]
+
+    past_occurrences = {l:[] for l in ls}
+
+    for _ in n_repeats:
+
+        ntwk = deepcopy(ntwk_base)
+        ntwk.store_voltages = True
+
+        for _ in n_steps:
+            ntwk.step()
+
+        spikes = np.array(ntwk.rs_history)
+        sequence = spikes.nonzero()[1]
+
+        for l in ls:
+            past_occurrences[l].append(get_number_of_past_occurrences(sequence, l))
+
+    means = [np.mean(np.array(past_occurrences[l]), axis=0) for l in ls]
+    stds = [np.std(np.array(past_occurrences[l]), axis=0) for l in ls]
+    sems = [stats.sem(np.array(past_occurrences[l]), axis=0) for l in ls]
+
+    return means, stds, sems
