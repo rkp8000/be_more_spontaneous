@@ -246,6 +246,23 @@ def get_number_of_past_occurrences(seq, l):
     return occs
 
 
+def get_number_of_past_occurrences_of_specific_sequence(seq, subseq):
+    """
+    Calculate how many times in the past a specific subsequence has occurred, for every time in large sequence.
+    :param seq: large sequence
+    :param subseq: subsequence to look for
+    :return: increasing array of same length as sequence
+    """
+
+    occs = np.zeros(seq.shape, dtype=int)
+
+    for t in range(len(subseq), len(seq) + 1):
+        if np.all(seq[t - len(subseq):t] == subseq):
+            occs[t - 1] = 1
+
+    return np.cumsum(occs)
+
+
 def spontaneous_sequence_repeats_stats(ntwk, ls, n_steps, n_repeats):
     """
     Estimate the expected number of times the most recent sequence has spontaneously occurred
