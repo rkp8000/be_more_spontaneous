@@ -258,16 +258,15 @@ def spontaneous_sequence_repeats_stats(ntwk, ls, n_steps, n_repeats):
     :return: means, stds, and sems
     """
     ntwk_base = ntwk
-    n_nodes = ntwk_base.w.shape[0]
 
-    past_occurrences = {l:[] for l in ls}
+    past_occurrences = {l: [] for l in ls}
 
-    for _ in n_repeats:
+    for _ in range(n_repeats):
 
         ntwk = deepcopy(ntwk_base)
         ntwk.store_voltages = True
 
-        for _ in n_steps:
+        for _ in range(n_steps):
             ntwk.step()
 
         spikes = np.array(ntwk.rs_history)
