@@ -258,6 +258,7 @@ def spontaneous_stats(config):
     np.random.seed(SEED)
 
     ntwk_base = np.load(LOAD_FILE_NAME)[0]
+    n_nodes = ntwk_base.w.shape[0]
 
     ts = np.arange(T)
     # plot expected number of times given sequence has occurred in the past vs t
@@ -281,7 +282,6 @@ def spontaneous_stats(config):
     axs[0].set_ylabel('expected past occurrences')
 
     # plot probability that most probable sequence occurs vs. chance when triggered
-    p, p_0 = metrics.softmax_prob_from_weights(ntwk_base.w, ntwk_base.gain)
 
     labels = []
     for ctr, path_tree in enumerate([ntwk_base.node_0_path_tree, ntwk_base.node_1_path_tree]):
@@ -290,7 +290,13 @@ def spontaneous_stats(config):
         for path in path_tree:
             p_path = 1
             for node_prev, node_next in zip(path[:-1], path[1:]):
-                p_path *= p[node_next, node_prev]
+                intrinsic = ntwk_base.w[:, node_prev]
+                refractory = np.zeros((n_nodes,), dtype=float)
+                refractory[node_prev] = ntwk_base.refractory_strength
+                inputs = intrinsic + refractory
+                prob = np.exp(ntwk_base.gain * inputs)
+                prob /= prob.sum()
+                p_path *= prob[node_next]
 
             if p_path > most_probable_path_prob:
                 most_probable_path_prob = p_path
@@ -310,7 +316,7 @@ def spontaneous_stats(config):
     axs[1].set_ylabel('Probability')
 
 
-def weakly_driven(config):
+def weakly_driven_ex(config):
     """
     Run simulation of activity influenced by weak drive.
     """
@@ -464,3 +470,98 @@ def weakly_driven(config):
     ax.set_ylim(-1, 20)
     ax.set_xlabel('time step')
     ax.set_ylabel('active ensemble')
+
+
+def weakly_driven_stats(config):
+    """
+    Plot statistics of network behavior under weak drive.
+    :param config:
+    :return:
+    """
+
+    LOAD_FILE_NAME = config['LOAD_FILE_NAME']
+
+    WEAK_DRIVE_AMPLITUDE = config['WEAK_DRIVE_AMPLITUDE']
+
+    DRIVE_AMPLITUDE_MIN = config['DRIVE_AMPLITUDE_MIN']
+    DRIVE_AMPLITUDE_MAX = config['DRIVE_AMPLITUDE_MAX']
+    DRIVE_AMPLITUDE_N_STEPS = config['DRIVE_AMPLITUDE_N_STEPS']
+
+    FIG_SIZE = config['FIG_SIZE']
+
+    ntwk_base = np.load(LOAD_FILE_NAME)[0]
+    n_nodes = ntwk_base.w.shape[0]
+
+    # show that probability of most probable path increases when weak drive is applied
+    ## find most probable path
+    most_probable_path = None
+    most_probable_path_prob = 0
+
+    for path in ntwk_base.node_0_path_tree:
+        p_path = 1
+        for node_prev, node_next in zip(path[:-1], path[1:]):
+            intrinsic = ntwk_base.w[:, node_prev]
+            refractory = np.zeros((n_nodes,), dtype=float)
+            refractory[node_prev] = ntwk_base.refractory_strength
+            inputs = intrinsic + refractory
+            prob = np.exp(ntwk_base.gain * inputs)
+            prob /= prob.sum()
+            p_path *= prob[node_next]
+
+        if p_path > most_probable_path_prob:
+            most_probable_path = path
+            most_probable_path_prob = p_path
+
+    ## calculate probability of most probable path when weak drive is applied
+    ### make drives
+    drives = np.zeros((3, n_nodes), dtype=float)
+    for t, node in enumerate(most_probable_path[1:]):
+        drives[t, node] = WEAK_DRIVE_AMPLITUDE
+
+    ### calculate path probability (TODO: make path probability an intrinsic network method)
+    p_path_driven = 1
+    for node_prev, node_next, drive in zip(most_probable_path[:-1], most_probable_path[1:], drives):
+        intrinsic = ntwk_base.w[:, node_prev]
+        refractory = np.zeros((n_nodes,), dtype=float)
+        refractory[node_prev] = ntwk_base.refractory_strength
+        inputs = drive + intrinsic + refractory
+        prob = np.exp(ntwk_base.gain * inputs)
+        prob /= prob.sum()
+        p_path_driven *= prob[node_next]
+
+    fig, axs = plt.subplots(1, 2, figsize=FIG_SIZE, tight_layout=True)
+    axs[0].bar([0, 1], [most_probable_path_prob, p_path_driven], align='center')
+    axs[0].set_ylim(0, 1)
+    axs[0].set_xticks([0, 1])
+    axs[0].set_xticklabels(['without \n weak drive', 'with weak \n drive'])
+    axs[0].set_ylabel('probability')
+
+    # show that probability that next node is driven node vs anatomically downstream node changes with
+    # drive strength
+    node_start = ntwk_base.node_0_path_tree[0][1]  # use node 1 in path 0 from node_0_path_tree as starting node
+    driven_node = ntwk_base.node_1_path_tree[0][2]  # use node 2 in path 0 from node_1_path_tree as driven node
+    drive_amps = np.linspace(DRIVE_AMPLITUDE_MIN, DRIVE_AMPLITUDE_MAX, DRIVE_AMPLITUDE_N_STEPS)
+    prob_driven = np.nan * np.zeros(drive_amps.shape)
+    prob_downstream = np.nan * np.zeros(drive_amps.shape)
+    downstream_nodes = ntwk_base.w[:, node_start] > 0
+
+    for ctr, drive_amp in enumerate(drive_amps):
+        drive = np.zeros((n_nodes,), dtype=float)
+        drive[driven_node] = drive_amp
+        intrinsic = ntwk_base.w[:, node_start]
+        refractory = np.zeros((n_nodes,), dtype=float)
+        refractory[node_start] = ntwk_base.refractory_strength
+        inputs = drive + intrinsic + refractory
+        prob = np.exp(ntwk_base.gain * inputs)
+        prob /= prob.sum()
+
+        prob_driven[ctr] = prob[driven_node]
+        prob_downstream[ctr] = prob[downstream_nodes].sum()
+
+    axs[1].plot(drive_amps, prob_driven, color='b', lw=2)
+    axs[1].plot(drive_amps, prob_downstream, color='g', lw=2)
+    axs[1].plot(drive_amps, 1 - prob_driven - prob_downstream, color='r', lw=2)
+
+    axs[1].set_xlabel('drive amplitude')
+    axs[1].set_ylabel('probability')
+    axs[1].legend(['driven node', 'downstream node', 'other node'])
