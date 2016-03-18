@@ -168,7 +168,7 @@ def make_and_save_network(config):
     np.save(SAVE_FILE_NAME, [ntwk])
 
 
-def spontaneous(config):
+def spontaneous_ex(config):
     """
     Run simulation of spontaneous activity.
     """
@@ -187,6 +187,8 @@ def spontaneous(config):
     np.random.seed(SEED)
 
     ntwk_base = np.load(LOAD_FILE_NAME)[0]
+
+    ## example activity traces
 
     # let the network run spontaneously
     ntwk = deepcopy(ntwk_base)
@@ -239,6 +241,73 @@ def spontaneous(config):
     axs[2].set_ylim(-1, 20)
     axs[2].set_xlabel('time step')
     axs[2].set_ylabel('ensemble')
+
+
+def spontaneous_stats(config):
+
+    SEED = config['SEED']
+
+    LOAD_FILE_NAME = config['LOAD_FILE_NAME']
+
+    L = config['L']
+    T = config['T']
+    N_REPEATS_LONG = config['N_REPEATS_LONG']
+
+    FIG_SIZE = config['FIG_SIZE']
+
+    np.random.seed(SEED)
+
+    ntwk_base = np.load(LOAD_FILE_NAME)[0]
+
+    ts = np.arange(T)
+    # plot expected number of times given sequence has occurred in the past vs t
+    means, stds, sems = metrics.spontaneous_sequence_repeats_stats(
+        ntwk=ntwk_base, ls=[L], n_steps=T, n_repeats=N_REPEATS_LONG,
+    )
+    # calculate chance value
+    ntwk_chance = deepcopy(ntwk_base)
+    ntwk_chance.w[:] = 0
+    means_chance, stds_chance, sems_chance = metrics.spontaneous_sequence_repeats_stats(
+        ntwk=ntwk_chance, ls=[L], n_steps=T, n_repeats=N_REPEATS_LONG,
+    )
+
+    fig, axs = plt.subplots(1, 2, figsize=FIG_SIZE, tight_layout=True)
+
+    axs[0].plot(ts, means[-1], lw=2, ls='-', color='b')
+    axs[0].plot(ts, means_chance[-1], lw=2, ls='--', color='g')
+    axs[0].fill_between(ts, means[-1] - sems[-1], means[-1] + sems[-1], color='b', alpha=0.3)
+
+    axs[0].set_xlabel('time step')
+    axs[0].set_ylabel('expected past occurrences')
+
+    # plot probability that most probable sequence occurs vs. chance when triggered
+    p, p_0 = metrics.softmax_prob_from_weights(ntwk_base.w, ntwk_base.gain)
+
+    labels = []
+    for ctr, path_tree in enumerate([ntwk_base.node_0_path_tree, ntwk_base.node_1_path_tree]):
+        most_probable_path_prob = 0
+
+        for path in path_tree:
+            p_path = 1
+            for node_prev, node_next in zip(path[:-1], path[1:]):
+                p_path *= p[node_next, node_prev]
+
+            if p_path > most_probable_path_prob:
+                most_probable_path_prob = p_path
+
+        axs[1].bar(
+            np.array([0, 1]) + 2 * ctr,
+            [most_probable_path_prob, 1 - most_probable_path_prob],
+            align='center'
+        )
+
+        labels.append('Most probable \n path starting \n from node {}'.format(path_tree[0][0]))
+        labels.append('Other paths \n starting from \n node {}'.format(path_tree[0][0]))
+
+    axs[1].set_ylim(0, 1)
+    axs[1].set_xticks([0, 1, 2, 3])
+    axs[1].set_xticklabels(labels)
+    axs[1].set_ylabel('Probability')
 
 
 def weakly_driven(config):
