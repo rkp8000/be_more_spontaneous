@@ -9,9 +9,12 @@ import numpy as np
 import sys
 import warnings
 warnings.filterwarnings("ignore")
+
+sys.path.append('/Users/rkp/Dropbox/Repositories/reusable')
 sys.path.append('/Users/rkp/Dropbox/Repositories/be_more_spontaneous')
 
 import fancy_raster
+from figure_magic import axis_tools
 import network
 
 
@@ -43,6 +46,7 @@ def novel_pattern_learning(CONFIG):
     N_REPEATS = CONFIG['N_REPEATS']
 
     FIG_SIZE_0 = CONFIG['FIG_SIZE_0']
+    FONT_SIZE = CONFIG['FONT_SIZE']
 
     np.random.seed(SEED)
 
@@ -90,7 +94,7 @@ def novel_pattern_learning(CONFIG):
 
         ax_twin.plot(ws, color='b', lw=2, alpha=0.7)
 
-        ax.set_ylabel('Active ensemble')
+        ax.set_ylabel('active \n ensemble')
         ax_twin.set_ylabel('W({}, {})'.format(*w_to_track), color='b')
 
     axs[-1].set_xlabel('time step')
@@ -100,6 +104,9 @@ def novel_pattern_learning(CONFIG):
 
     axs[0].set_xlim(-5, RUN_LENGTH)
     axs[0].set_title('With nonassociative priming')
+
+    for ax in list(axs) + axs_twin:
+        axis_tools.set_fontsize(ax, FONT_SIZE)
 
     fig, axs = plt.subplots(N_REPEATS, 1, figsize=FIG_SIZE_0, sharex=True, tight_layout=True)
     axs_twin = [ax.twinx() for ax in axs]
@@ -126,7 +133,7 @@ def novel_pattern_learning(CONFIG):
 
         ax_twin.plot(ws, color='b', lw=2, alpha=0.7)
 
-        ax.set_ylabel('Active ensemble')
+        ax.set_ylabel('active \n ensemble')
         ax_twin.set_ylabel('W({}, {})'.format(*w_to_track), color='b')
 
     axs[-1].set_xlabel('time step')
@@ -136,3 +143,6 @@ def novel_pattern_learning(CONFIG):
 
     axs[0].set_xlim(-5, RUN_LENGTH)
     axs[0].set_title('Without nonassociative priming')
+
+    for ax in list(axs) + axs_twin:
+        axis_tools.set_fontsize(ax, FONT_SIZE)
