@@ -10,9 +10,12 @@ from scipy import stats
 import sys
 import warnings
 warnings.filterwarnings("ignore")
+
+sys.path.append('/Users/rkp/Dropbox/Repositories/reusable')
 sys.path.append('/Users/rkp/Dropbox/Repositories/be_more_spontaneous')
 
 import fancy_raster
+from figure_magic import axis_tools
 import metrics
 import network
 
@@ -38,7 +41,9 @@ def basic_replay_ex(CONFIG):
 
     TRIAL_LENGTH_TRIGGERED_REPLAY = CONFIG['TRIAL_LENGTH_TRIGGERED_REPLAY']
     RUN_LENGTH = CONFIG['RUN_LENGTH']
+
     FIG_SIZE = CONFIG['FIG_SIZE']
+    FONT_SIZE = CONFIG['FONT_SIZE']
 
     np.random.seed(SEED)
 
@@ -241,6 +246,9 @@ def basic_replay_ex(CONFIG):
     axs[7].set_ylabel('active ensemble')
     axs[7].set_title('Letting network run freely with no drive (low gain)')
 
+    for ax in axs:
+        axis_tools.set_fontsize(ax, FONT_SIZE)
+
 
 def basic_replay_stats(CONFIG):
     """
@@ -263,6 +271,7 @@ def basic_replay_stats(CONFIG):
     SPONTANEOUS_REPEATS = CONFIG['SPONTANEOUS_REPEATS']
 
     FIG_SIZE = CONFIG['FIG_SIZE']
+    FONT_SIZE = CONFIG['FONT_SIZE']
 
     np.random.seed(SEED)
 
@@ -375,7 +384,10 @@ def basic_replay_stats(CONFIG):
         ax.set_xlabel('time step')
         ax.set_ylabel('past occurrences')
         ax.set_title('gain = {}'.format(gain))
-        ax.legend(['Without nonassociative priming', 'With nonassociative priming'], loc='best')
+        ax.legend(['Without nonasso-\n ciative priming', 'With nonasso- \n ciative priming'], loc='best')
+
+    for ax in axs:
+        axis_tools.set_fontsize(ax, FONT_SIZE)
 
 
 def novel_pattern_replay(CONFIG):
@@ -403,6 +415,8 @@ def novel_pattern_replay(CONFIG):
 
     FIG_SIZE_0 = CONFIG['FIG_SIZE_0']
     FIG_SIZE_1 = CONFIG['FIG_SIZE_1']
+
+    FONT_SIZE = CONFIG['FONT_SIZE']
 
     np.random.seed(SEED)
 
@@ -438,7 +452,7 @@ def novel_pattern_replay(CONFIG):
         ax.set_xlim(-1, len(drives))
         ax.set_ylim(-1, 20)
         ax.set_xlabel('time step')
-        ax.set_ylabel('active ensemble')
+        ax.set_ylabel('active \n ensemble')
         ax.set_title('Strongly driving nonexisting path (trial {})'.format(ctr + 1))
 
     w = ntwk_old.w.copy()
@@ -477,7 +491,7 @@ def novel_pattern_replay(CONFIG):
         ax.set_xlim(-1, len(drives))
         ax.set_ylim(-1, 20)
         ax.set_xlabel('time step')
-        ax.set_ylabel('active ensemble')
+        ax.set_ylabel('active \n ensemble')
         ax.set_title('Activity from forced initial condition after \n driving path with weak connection (trial {})'.format(ctr + 1))
 
     # demonstrate how weak connections do not substantially affect path probabilities
@@ -521,8 +535,13 @@ def novel_pattern_replay(CONFIG):
     axs[3].set_xlim(-1, len(drives))
     axs[3].set_ylim(-1, 40)
     axs[3].set_xlabel('time step')
-    axs[3].set_ylabel('active ensemble')
+    axs[3].set_ylabel('active \n ensemble')
     axs[3].set_title('Free activity after driving path with weak connection')
+
+    for ax_row in axs[:-1]:
+        for ax in ax_row:
+            axis_tools.set_fontsize(ax, FONT_SIZE)
+    axis_tools.set_fontsize(axs[-1], FONT_SIZE)
 
     # now demonstrate how pattern-matching computation changes with respect to short-term memory
     fig, axs = plt.subplots(1, 2, figsize=FIG_SIZE_1, tight_layout=True)
@@ -569,3 +588,6 @@ def novel_pattern_replay(CONFIG):
     axs[1].set_xlabel('time step')
     axs[1].set_ylabel('active ensemble')
     axs[1].set_title('Weakly driving nonexistent path after \n strongly driving path with weak connection')
+
+    for ax in axs:
+        axis_tools.set_fontsize(ax, FONT_SIZE)
