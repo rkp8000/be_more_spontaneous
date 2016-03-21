@@ -11,10 +11,12 @@ import sys
 import warnings
 warnings.filterwarnings("ignore")
 
+sys.path.append('/Users/rkp/Dropbox/Repositories/reusable')
 sys.path.append('/Users/rkp/Dropbox/Repositories/be_more_spontaneous')
 
 
 import fancy_raster
+from figure_magic import axis_tools
 import metrics
 import network
 
@@ -183,6 +185,7 @@ def spontaneous_ex(config):
     N_REPEATS = config['N_REPEATS']
 
     FIG_SIZE = config['FIG_SIZE']
+    FONT_SIZE = config['FONT_SIZE']
 
     np.random.seed(SEED)
 
@@ -242,6 +245,9 @@ def spontaneous_ex(config):
     axs[2].set_xlabel('time step')
     axs[2].set_ylabel('ensemble')
 
+    for ax in axs:
+        axis_tools.set_fontsize(ax, FONT_SIZE)
+
 
 def spontaneous_stats(config):
 
@@ -254,6 +260,7 @@ def spontaneous_stats(config):
     N_REPEATS_LONG = config['N_REPEATS_LONG']
 
     FIG_SIZE = config['FIG_SIZE']
+    FONT_SIZE = config['FONT_SIZE']
 
     np.random.seed(SEED)
 
@@ -315,6 +322,9 @@ def spontaneous_stats(config):
     axs[1].set_xticklabels(labels)
     axs[1].set_ylabel('Probability')
 
+    for ax in axs:
+        axis_tools.set_fontsize(ax, FONT_SIZE)
+
 
 def weakly_driven_ex(config):
     """
@@ -334,6 +344,7 @@ def weakly_driven_ex(config):
     N_REPEATS = config['N_REPEATS']
 
     FIG_SIZE = config['FIG_SIZE']
+    FONT_SIZE = config['FONT_SIZE']
 
     np.random.seed(SEED)
 
@@ -471,6 +482,9 @@ def weakly_driven_ex(config):
     ax.set_xlabel('time step')
     ax.set_ylabel('active ensemble')
 
+    for ax in axs:
+        axis_tools.set_fontsize(ax, FONT_SIZE)
+
 
 def weakly_driven_stats(config):
     """
@@ -488,6 +502,7 @@ def weakly_driven_stats(config):
     DRIVE_AMPLITUDE_N_STEPS = config['DRIVE_AMPLITUDE_N_STEPS']
 
     FIG_SIZE = config['FIG_SIZE']
+    FONT_SIZE = config['FONT_SIZE']
 
     ntwk_base = np.load(LOAD_FILE_NAME)[0]
     n_nodes = ntwk_base.w.shape[0]
@@ -565,3 +580,6 @@ def weakly_driven_stats(config):
     axs[1].set_xlabel('drive amplitude')
     axs[1].set_ylabel('probability')
     axs[1].legend(['driven node', 'downstream node', 'other node'])
+
+    for ax in axs:
+        axis_tools.set_fontsize(ax, FONT_SIZE)
